@@ -22,12 +22,12 @@ function Main() {
   );
 }
 
-export default function App() {
+export default function App({ company }: { company?: string }) {
   return (
     <Suspense>
       <InvoiceDataProvider>
         <PersonalFormProvider>
-          <CompanyFormProvider>
+          <CompanyFormProvider company={company}>
             <BankFormProvider>
               <AppShell padding="md" header={{ height: 60 }}>
                 <AppShell.Header>

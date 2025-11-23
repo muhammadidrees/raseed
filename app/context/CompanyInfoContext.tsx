@@ -7,7 +7,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { useSearchParams } from "next/navigation";
+
 import { CompanyInfo } from "../types";
 
 interface CompanyInfoFormContextType {
@@ -52,34 +52,51 @@ const loadInitialState = (): CompanyInfo => {
   };
 };
 
-export const CompanyFormProvider = ({ children }: { children: ReactNode }) => {
-  const params = useSearchParams();
+export const CompanyFormProvider = ({
+  children,
+  company,
+}: {
+  children: ReactNode;
+  company?: string;
+}) => {
+  // If company prop is provided, use company data; otherwise load from localStorage
+  const getInitialState = (): CompanyInfo => {
+    if (company?.toLowerCase() === "makula") {
+      return {
+        name: "Makula Technology GmbH",
+        address: {
+          street: "c/o Mindspace Münzstr. 12",
+          city: "Germany",
+          zip: "10178 Berlin",
+        },
+      };
+    }
+    return loadInitialState();
+  };
 
-  const company = params.get("company");
+  const [formData, setFormData] = useState<CompanyInfo>(getInitialState());
 
-  let companyData = null;
-
-  if (company?.toLowerCase() === "makula") {
-    companyData = {
-      name: "Makula Technology GmbH",
-      address: {
-        street: "c/o Mindspace Münzstr. 12",
-        city: "Germany",
-        zip: "10178 Berlin",
-      },
-    };
-  }
-
-  // Load initial state from localStorage or use companyData if available
-  const [formData, setFormData] = useState<CompanyInfo>(
-    companyData || loadInitialState()
-  );
-
-  // Save formData to localStorage whenever it changes
+  // Update data when company prop changes
   useEffect(() => {
-    if (isBrowser)
+    if (company?.toLowerCase() === "makula") {
+      const companyData = {
+        name: "Makula Technology GmbH",
+        address: {
+          street: "c/o Mindspace Münzstr. 12",
+          city: "Germany",
+          zip: "10178 Berlin",
+        },
+      };
+      setFormData(companyData);
+    }
+  }, [company]);
+
+  // Save formData to localStorage only when no company prop is provided
+  useEffect(() => {
+    if (!company && isBrowser) {
       localStorage.setItem("companyFormData", JSON.stringify(formData));
-  }, [formData]);
+    }
+  }, [formData, company]);
 
   return (
     <CompanyInfoFormContext.Provider
