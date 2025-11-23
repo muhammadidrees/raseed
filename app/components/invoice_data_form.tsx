@@ -9,6 +9,7 @@ import {
   ActionIcon,
   Text,
   NumberInput,
+  Select,
 } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
@@ -84,6 +85,38 @@ export default function InvoiceDataForm() {
           key={form.key("date")}
           {...form.getInputProps("date")}
         />
+
+        <Select
+          mt="md"
+          label="Payment Terms"
+          placeholder="Select payment terms"
+          description="When payment is expected"
+          withAsterisk
+          data={[
+            { value: "due_on_receipt", label: "Due on Receipt" },
+            { value: "net_15", label: "Net 15" },
+            { value: "net_30", label: "Net 30" },
+            { value: "net_60", label: "Net 60" },
+            { value: "custom", label: "Custom" },
+          ]}
+          allowDeselect={false}
+          key={form.key("dueTerms")}
+          {...form.getInputProps("dueTerms")}
+        />
+
+        {form.getValues().dueTerms === "custom" && (
+          <NumberInput
+            mt="md"
+            label="Custom Days"
+            placeholder="Enter number of days"
+            description="Number of days after invoice date"
+            withAsterisk
+            min={1}
+            max={365}
+            key={form.key("customDueDays")}
+            {...form.getInputProps("customDueDays")}
+          />
+        )}
 
         {fields.length > 0 ? (
           <Group>

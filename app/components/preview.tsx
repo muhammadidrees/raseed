@@ -191,6 +191,57 @@ function MyDocument({
     return `${day}/${month}/${year}`;
   };
 
+  // Calculate due date based on payment terms
+  const calculateDueDate = (
+    invoiceDate: Date,
+    dueTerms: string,
+    customDays?: number
+  ): Date => {
+    const dueDate = new Date(invoiceDate);
+
+    switch (dueTerms) {
+      case "due_on_receipt":
+        return dueDate;
+      case "net_15":
+        dueDate.setDate(dueDate.getDate() + 15);
+        return dueDate;
+      case "net_30":
+        dueDate.setDate(dueDate.getDate() + 30);
+        return dueDate;
+      case "net_60":
+        dueDate.setDate(dueDate.getDate() + 60);
+        return dueDate;
+      case "custom":
+        if (customDays) {
+          dueDate.setDate(dueDate.getDate() + customDays);
+        }
+        return dueDate;
+      default:
+        return dueDate;
+    }
+  };
+
+  // Get payment terms label for display
+  const getPaymentTermsLabel = (
+    dueTerms: string,
+    customDays?: number
+  ): string => {
+    switch (dueTerms) {
+      case "due_on_receipt":
+        return "Due on Receipt";
+      case "net_15":
+        return "Net 15";
+      case "net_30":
+        return "Net 30";
+      case "net_60":
+        return "Net 60";
+      case "custom":
+        return customDays ? `Net ${customDays}` : "Custom";
+      default:
+        return "Due on Receipt";
+    }
+  };
+
   // Calculate invoice number based on month/year
   const generateInvoiceNumber = (date: Date) => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -235,7 +286,13 @@ function MyDocument({
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Due Date:</Text>
               <Text style={styles.detailValue}>
-                {formatDate(new Date(invoiceFromData.date))}
+                {formatDate(
+                  calculateDueDate(
+                    invoiceFromData.date,
+                    invoiceFromData.dueTerms,
+                    invoiceFromData.customDueDays
+                  )
+                )}
               </Text>
             </View>
             <View style={styles.detailRow}>
@@ -246,7 +303,12 @@ function MyDocument({
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Terms:</Text>
-              <Text style={styles.detailValue}>Fixed</Text>
+              <Text style={styles.detailValue}>
+                {getPaymentTermsLabel(
+                  invoiceFromData.dueTerms,
+                  invoiceFromData.customDueDays
+                )}
+              </Text>
             </View>
           </View>
         </View>
@@ -346,8 +408,16 @@ function MyDocument({
         {/* Footer */}
         <Text style={styles.footer}>
           Amount due: {total.toFixed(2)} €{"\n"}
-          Thank you for your business! Payment is due upon receipt of this
-          invoice.
+          Thank you for your business! Payment is{" "}
+          {invoiceFromData.dueTerms === "due_on_receipt"
+            ? "due upon receipt of this invoice"
+            : `due within ${
+                invoiceFromData.dueTerms === "custom" &&
+                invoiceFromData.customDueDays
+                  ? invoiceFromData.customDueDays
+                  : invoiceFromData.dueTerms.replace("net_", "")
+              } days of invoice date`}
+          .
         </Text>
       </Page>
     </Document>

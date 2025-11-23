@@ -38,6 +38,8 @@ const loadInitialState = (): InvoiceData => {
         const parsedData = JSON.parse(storedData);
 
         parsedData.date = new Date();
+        parsedData.dueTerms = parsedData.dueTerms || "due_on_receipt";
+        parsedData.customDueDays = parsedData.customDueDays || undefined;
 
         return parsedData;
       }
@@ -46,6 +48,8 @@ const loadInitialState = (): InvoiceData => {
     // Default state
     return {
       date: new Date(),
+      dueTerms: "due_on_receipt",
+      customDueDays: undefined,
       items: [
         {
           description: "",
@@ -59,6 +63,8 @@ const loadInitialState = (): InvoiceData => {
     console.error("Error loading initial state:", error);
     return {
       date: new Date(),
+      dueTerms: "due_on_receipt",
+      customDueDays: undefined,
       items: [
         {
           description: "",
@@ -76,7 +82,12 @@ export const InvoiceDataProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (isBrowser) {
-      const dataToStore = { date: null, items: [formData.items[0]] };
+      const dataToStore = {
+        date: null,
+        dueTerms: formData.dueTerms,
+        customDueDays: formData.customDueDays,
+        items: [formData.items[0]],
+      };
       localStorage.setItem("invoiceData", JSON.stringify(dataToStore));
     }
   }, [formData]);
