@@ -33,11 +33,12 @@ const isBrowser = typeof window !== "undefined";
 const loadInitialState = (): BankInfo => {
   if (isBrowser) {
     const storedData = localStorage.getItem("bankFormData");
-
     if (storedData) {
-      const parsedData = JSON.parse(storedData);
-
-      return parsedData;
+      try {
+        return JSON.parse(storedData);
+      } catch (error) {
+        console.error("Failed to parse stored bank form data:", error);
+      }
     }
   }
 

@@ -20,6 +20,7 @@ export function AccordianControl({
 
   return (
     <Accordion.Control
+      suppressHydrationWarning
       icon={
         isFormEmpty ? (
           <IconAlertSquareRounded color={theme.colors.red[9]} />

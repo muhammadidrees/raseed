@@ -14,24 +14,25 @@
     "@mantine/dates": "7.14.3",
     "@mantine/form": "7.14.3",
     "@mantine/hooks": "7.14.3",
-    "@mantine/notifications": "7.14.2",
+    "@mantine/notifications": "7.14.3",
     "@react-pdf-viewer/core": "^3.12.0",
     "@react-pdf-viewer/default-layout": "^3.12.0",
     "@react-pdf-viewer/print": "^3.12.0",
     "@react-pdf-viewer/toolbar": "^3.12.0",
-    "@react-pdf/renderer": "^4.1.4",
-    "@tabler/icons-react": "^3.22.0",
-    "next": "15.0.3",
-    "react": "19.0.0-rc-66855b96-20241106",
-    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "@react-pdf/renderer": "^4.3.1",
+    "@tabler/icons-react": "^3.35.0",
+    "next": "16.0.10",
+    "pdfjs-dist": "3.11.174",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-pdf": "^9.1.1"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "15.0.3",
-    "typescript": "^5"
+    "@types/node": "^25.0.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "16.0.10",
+    "typescript": "^5.9.3"
   }
 }

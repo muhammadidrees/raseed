@@ -36,9 +36,11 @@ const loadInitialState = (): CompanyInfo => {
   if (isBrowser) {
     const storedData = localStorage.getItem("companyFormData");
     if (storedData) {
-      const parsedData = JSON.parse(storedData);
-
-      return parsedData;
+      try {
+        return JSON.parse(storedData);
+      } catch (error) {
+        console.error("Failed to parse stored company form data:", error);
+      }
     }
   }
 

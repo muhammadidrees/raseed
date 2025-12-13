@@ -36,11 +36,9 @@ const loadInitialState = (): InvoiceData => {
       const storedData = localStorage.getItem("invoiceData");
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-
         parsedData.date = new Date();
         parsedData.dueTerms = parsedData.dueTerms || "due_on_receipt";
         parsedData.customDueDays = parsedData.customDueDays || undefined;
-
         return parsedData;
       }
     }

@@ -34,9 +34,11 @@ const loadInitialState = (): PersonalInfo => {
   if (isBrowser) {
     const storedData = localStorage.getItem("personalFormData");
     if (storedData) {
-      const parsedData = JSON.parse(storedData);
-
-      return parsedData;
+      try {
+        return JSON.parse(storedData);
+      } catch (error) {
+        console.error("Failed to parse stored personal form data:", error);
+      }
     }
   }
 
@@ -57,8 +59,9 @@ export const PersonalFormProvider = ({ children }: { children: ReactNode }) => {
 
   // Save formData to localStorage whenever it changes
   useEffect(() => {
-    if (isBrowser)
+    if (isBrowser) {
       localStorage.setItem("personalFormData", JSON.stringify(formData));
+    }
   }, [formData]);
 
   return (
