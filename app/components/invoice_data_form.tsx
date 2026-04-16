@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import {
   TextInput,
@@ -20,7 +21,7 @@ import { notifications } from "@mantine/notifications";
 
 function onFromSubmit(
   form: UseFormReturnType<InvoiceData>,
-  setFormData: React.Dispatch<React.SetStateAction<InvoiceData>>
+  setFormData: React.Dispatch<React.SetStateAction<InvoiceData>>,
 ) {
   console.log(form.getValues());
   setFormData(form.getValues());
@@ -38,6 +39,10 @@ export default function InvoiceDataForm() {
     mode: "uncontrolled",
     initialValues: formData,
   });
+
+  useEffect(() => {
+    form.setValues(formData);
+  }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fields = form.getValues().items.map((item, index) => (
     <Group key={item.key}>

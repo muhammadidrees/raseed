@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { isNotEmpty, useForm, UseFormReturnType } from "@mantine/form";
 import { TextInput, Button, Group, Stack, Accordion } from "@mantine/core";
 import { CompanyInfo } from "../types";
@@ -9,7 +10,7 @@ import { AccordianControl } from "./AccordianControl";
 
 function onFromSubmit(
   form: UseFormReturnType<CompanyInfo>,
-  setFormData: React.Dispatch<React.SetStateAction<CompanyInfo>>
+  setFormData: React.Dispatch<React.SetStateAction<CompanyInfo>>,
 ) {
   console.log(form.values);
   setFormData(form.values);
@@ -34,6 +35,10 @@ export default function CompanyInfoAccordion() {
       },
     },
   });
+
+  useEffect(() => {
+    form.setValues(formData);
+  }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSaveDisabled =
     JSON.stringify(form.values) === JSON.stringify(formData);

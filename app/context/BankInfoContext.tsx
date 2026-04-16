@@ -13,14 +13,14 @@ interface BankInfoFormContextType {
 }
 
 const BankInfoFormContext = createContext<BankInfoFormContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useBankFormContext = () => {
   const context = useContext(BankInfoFormContext);
   if (!context) {
     throw new Error(
-      "useBankFormContext must be used within a BankFormProvider"
+      "useBankFormContext must be used within a BankFormProvider",
     );
   }
   return context;
@@ -50,8 +50,21 @@ const loadInitialState = (): BankInfo => {
   };
 };
 
+const defaultState: BankInfo = {
+  name: "",
+  accountTitle: "",
+  iban: "",
+  bic: "",
+};
+
 export const BankFormProvider = ({ children }: { children: ReactNode }) => {
-  const [formData, setFormData] = useState<BankInfo>(loadInitialState);
+  const [formData, setFormData] = useState<BankInfo>(defaultState);
+
+  // Load from localStorage after mount to avoid SSR/client hydration mismatch
+  useEffect(() => {
+    const stored = loadInitialState();
+    setFormData(stored);
+  }, []);
 
   // Save formData to localStorage whenever it changes
   useEffect(() => {

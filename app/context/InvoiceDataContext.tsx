@@ -14,14 +14,14 @@ interface InvoiceDataContextProps {
 }
 
 const InvoiceDataContext = createContext<InvoiceDataContextProps | undefined>(
-  undefined
+  undefined,
 );
 
 export const useInvoiceDataContext = (): InvoiceDataContextProps => {
   const context = useContext(InvoiceDataContext);
   if (!context) {
     throw new Error(
-      "useInvoiceDataContext must be used within an InvoiceDataProvider"
+      "useInvoiceDataContext must be used within an InvoiceDataProvider",
     );
   }
   return context;
@@ -75,8 +75,27 @@ const loadInitialState = (): InvoiceData => {
   }
 };
 
+const defaultState: InvoiceData = {
+  date: new Date(),
+  dueTerms: "due_on_receipt",
+  customDueDays: undefined,
+  items: [
+    {
+      description: "",
+      quantity: 1,
+      price: 0,
+      key: randomId(),
+    },
+  ],
+};
+
 export const InvoiceDataProvider = ({ children }: { children: ReactNode }) => {
-  const [formData, setFormData] = useState<InvoiceData>(loadInitialState);
+  const [formData, setFormData] = useState<InvoiceData>(defaultState);
+
+  // Load from localStorage after mount to avoid SSR/client hydration mismatch
+  useEffect(() => {
+    setFormData(loadInitialState());
+  }, []);
 
   useEffect(() => {
     if (isBrowser) {

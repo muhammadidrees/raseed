@@ -20,7 +20,7 @@ export const usePersonalFormContext = () => {
   const context = useContext(PersonalInfoFormContext);
   if (!context) {
     throw new Error(
-      "usePersonalFormContext must be used within a PersonalFormProvider"
+      "usePersonalFormContext must be used within a PersonalFormProvider",
     );
   }
   return context;
@@ -54,8 +54,25 @@ const loadInitialState = (): PersonalInfo => {
   };
 };
 
+const defaultState: PersonalInfo = {
+  name: "",
+  email: "",
+  taxID: "",
+  address: {
+    street: "",
+    city: "",
+    zip: "",
+  },
+};
+
 export const PersonalFormProvider = ({ children }: { children: ReactNode }) => {
-  const [formData, setFormData] = useState<PersonalInfo>(loadInitialState);
+  const [formData, setFormData] = useState<PersonalInfo>(defaultState);
+
+  // Load from localStorage after mount to avoid SSR/client hydration mismatch
+  useEffect(() => {
+    const stored = loadInitialState();
+    setFormData(stored);
+  }, []);
 
   // Save formData to localStorage whenever it changes
   useEffect(() => {

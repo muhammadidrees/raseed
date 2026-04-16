@@ -23,7 +23,7 @@ export const useCompanyFormContext = () => {
   const context = useContext(CompanyInfoFormContext);
   if (!context) {
     throw new Error(
-      "useCompanyFormContext must be used within a CompanyFormProvider"
+      "useCompanyFormContext must be used within a CompanyFormProvider",
     );
   }
   return context;
@@ -54,6 +54,24 @@ const loadInitialState = (): CompanyInfo => {
   };
 };
 
+const defaultState: CompanyInfo = {
+  name: "",
+  address: {
+    street: "",
+    city: "",
+    zip: "",
+  },
+};
+
+const makulaState: CompanyInfo = {
+  name: "Makula Technology GmbH",
+  address: {
+    street: "c/o Mindspace Münzstr. 12",
+    city: "Germany",
+    zip: "10178 Berlin",
+  },
+};
+
 export const CompanyFormProvider = ({
   children,
   company,
@@ -61,35 +79,14 @@ export const CompanyFormProvider = ({
   children: ReactNode;
   company?: string;
 }) => {
-  // If company prop is provided, use company data; otherwise load from localStorage
-  const getInitialState = (): CompanyInfo => {
-    if (company?.toLowerCase() === "makula") {
-      return {
-        name: "Makula Technology GmbH",
-        address: {
-          street: "c/o Mindspace Münzstr. 12",
-          city: "Germany",
-          zip: "10178 Berlin",
-        },
-      };
-    }
-    return loadInitialState();
-  };
+  const [formData, setFormData] = useState<CompanyInfo>(defaultState);
 
-  const [formData, setFormData] = useState<CompanyInfo>(getInitialState());
-
-  // Update data when company prop changes
+  // Load the correct data after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
     if (company?.toLowerCase() === "makula") {
-      const companyData = {
-        name: "Makula Technology GmbH",
-        address: {
-          street: "c/o Mindspace Münzstr. 12",
-          city: "Germany",
-          zip: "10178 Berlin",
-        },
-      };
-      setFormData(companyData);
+      setFormData(makulaState);
+    } else {
+      setFormData(loadInitialState());
     }
   }, [company]);
 

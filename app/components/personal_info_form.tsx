@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { isNotEmpty, useForm, UseFormReturnType } from "@mantine/form";
 import {
   TextInput,
@@ -16,7 +17,7 @@ import { notifications } from "@mantine/notifications";
 
 function onFromSubmit(
   form: UseFormReturnType<PersonalInfo>,
-  setFormData: React.Dispatch<React.SetStateAction<PersonalInfo>>
+  setFormData: React.Dispatch<React.SetStateAction<PersonalInfo>>,
 ) {
   console.log(form.values);
   setFormData(form.values);
@@ -43,6 +44,10 @@ export default function PersonalInfoAccordian() {
       },
     },
   });
+
+  useEffect(() => {
+    form.setValues(formData);
+  }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSaveDisabled =
     JSON.stringify(form.values) === JSON.stringify(formData);

@@ -10,29 +10,29 @@
     "deploy": "gh-pages -d out"
   },
   "dependencies": {
-    "@mantine/core": "7.14.3",
-    "@mantine/dates": "7.14.3",
-    "@mantine/form": "7.14.3",
-    "@mantine/hooks": "7.14.3",
-    "@mantine/notifications": "7.14.3",
+    "@mantine/core": "^9.0.2",
+    "@mantine/dates": "^9.0.2",
+    "@mantine/form": "^9.0.2",
+    "@mantine/hooks": "^9.0.2",
+    "@mantine/notifications": "^9.0.2",
     "@react-pdf-viewer/core": "^3.12.0",
     "@react-pdf-viewer/default-layout": "^3.12.0",
     "@react-pdf-viewer/print": "^3.12.0",
     "@react-pdf-viewer/toolbar": "^3.12.0",
-    "@react-pdf/renderer": "^4.3.1",
-    "@tabler/icons-react": "^3.35.0",
-    "next": "16.0.10",
-    "pdfjs-dist": "3.11.174",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "@react-pdf/renderer": "^4.5.1",
+    "@tabler/icons-react": "^3.41.1",
+    "next": "^16.2.4",
+    "pdfjs-dist": "^4.4.168",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "react-pdf": "^9.1.1"
   },
   "devDependencies": {
-    "@types/node": "^25.0.1",
-    "@types/react": "^19.2.7",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "^16.2.4",
     "typescript": "^5.9.3"
   }
 }

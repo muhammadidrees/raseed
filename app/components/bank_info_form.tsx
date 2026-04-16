@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { isNotEmpty, useForm, UseFormReturnType } from "@mantine/form";
 import { TextInput, Button, Group, Stack, Accordion } from "@mantine/core";
 import { BankInfo } from "../types";
@@ -9,7 +10,7 @@ import { notifications } from "@mantine/notifications";
 
 function onFromSubmit(
   form: UseFormReturnType<BankInfo>,
-  setFormData: React.Dispatch<React.SetStateAction<BankInfo>>
+  setFormData: React.Dispatch<React.SetStateAction<BankInfo>>,
 ) {
   console.log(form.values);
   setFormData(form.values);
@@ -32,6 +33,10 @@ export default function BankInfoAccordion() {
       bic: isNotEmpty("BIC is required"),
     },
   });
+
+  useEffect(() => {
+    form.setValues(formData);
+  }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSaveDisabled =
     JSON.stringify(form.values) === JSON.stringify(formData);
