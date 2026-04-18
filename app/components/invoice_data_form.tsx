@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import {
   TextInput,
@@ -11,8 +11,10 @@ import {
   Text,
   NumberInput,
   Select,
+  Anchor,
+  Collapse,
 } from "@mantine/core";
-import { MonthPickerInput } from "@mantine/dates";
+import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { IconTrash, IconCurrencyEuro } from "@tabler/icons-react";
@@ -22,9 +24,16 @@ import { notifications } from "@mantine/notifications";
 function onFromSubmit(
   form: UseFormReturnType<InvoiceData>,
   setFormData: React.Dispatch<React.SetStateAction<InvoiceData>>,
+  periodStart: Date | null,
+  periodEnd: Date | null,
+  customPeriod: boolean,
 ) {
-  console.log(form.getValues());
-  setFormData(form.getValues());
+  const values = form.getValues();
+  setFormData({
+    ...values,
+    periodStart: customPeriod && periodStart ? periodStart : undefined,
+    periodEnd: customPeriod && periodEnd ? periodEnd : undefined,
+  });
   notifications.show({
     color: "green",
     title: "Invoice Data Saved",
@@ -32,17 +41,98 @@ function onFromSubmit(
   });
 }
 
+/** Compare the fields that are actually persisted, ignoring date (always reset to now) and period (session-only). */
+function hasPersistableChanges(
+  current: InvoiceData,
+  saved: InvoiceData,
+): boolean {
+  if (current.dueTerms !== saved.dueTerms) return true;
+  if ((current.customDueDays ?? null) !== (saved.customDueDays ?? null))
+    return true;
+  if (JSON.stringify(current.items) !== JSON.stringify(saved.items))
+    return true;
+  return false;
+}
+
 export default function InvoiceDataForm() {
   const { invoiceFromData: formData, setFormData } = useInvoiceDataContext();
+
+  // Period dates are session-only (not persisted) — managed as local state
+  const [customPeriod, setCustomPeriod] = useState(false);
+  const [periodStart, setPeriodStart] = useState<Date | null>(null);
+  const [periodEnd, setPeriodEnd] = useState<Date | null>(null);
+  const [periodError, setPeriodError] = useState<string | null>(null);
+  const [currentValues, setCurrentValues] = useState<InvoiceData>(formData);
 
   const form = useForm<InvoiceData>({
     mode: "uncontrolled",
     initialValues: formData,
+    onValuesChange: (values) => setCurrentValues(values),
   });
+
+  const hasChanges =
+    hasPersistableChanges(currentValues, formData) || customPeriod;
 
   useEffect(() => {
     form.setValues(formData);
+    setCurrentValues(formData);
   }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the selected month changes, keep custom period in sync with new month
+  const handleMonthChange = (value: string | null) => {
+    const date = value ? new Date(value) : new Date();
+    form.setFieldValue("date", date);
+    if (customPeriod) {
+      setPeriodStart(new Date(date.getFullYear(), date.getMonth(), 1));
+      setPeriodEnd(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+      setPeriodError(null);
+    }
+  };
+
+  const enableCustomPeriod = () => {
+    const date: Date = form.getValues().date ?? new Date();
+    setPeriodStart(new Date(date.getFullYear(), date.getMonth(), 1));
+    setPeriodEnd(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+    setPeriodError(null);
+    setCustomPeriod(true);
+  };
+
+  const resetCustomPeriod = () => {
+    setPeriodStart(null);
+    setPeriodEnd(null);
+    setPeriodError(null);
+    setCustomPeriod(false);
+  };
+
+  const handlePeriodStartChange = (value: string | null) => {
+    const date = value ? new Date(value) : null;
+    setPeriodStart(date);
+    setPeriodError(null);
+    // Clear end if it's now before new start
+    if (date && periodEnd && periodEnd < date) {
+      setPeriodEnd(null);
+    }
+  };
+
+  const handlePeriodEndChange = (value: string | null) => {
+    const date = value ? new Date(value) : null;
+    setPeriodEnd(date);
+    setPeriodError(null);
+  };
+
+  const handleSubmit = () => {
+    if (customPeriod) {
+      if (!periodStart || !periodEnd) {
+        setPeriodError("Both period dates are required");
+        return;
+      }
+      if (periodEnd < periodStart) {
+        setPeriodError("End date must be after start date");
+        return;
+      }
+    }
+    onFromSubmit(form, setFormData, periodStart, periodEnd, customPeriod);
+  };
 
   const fields = form.getValues().items.map((item, index) => (
     <Group key={item.key}>
@@ -80,16 +170,59 @@ export default function InvoiceDataForm() {
   ));
 
   return (
-    <form onSubmit={form.onSubmit(() => onFromSubmit(form, setFormData))}>
+    <form onSubmit={form.onSubmit(handleSubmit)}>
       <Stack>
-        <MonthPickerInput
-          mt="md"
-          label="Invoice Date"
-          placeholder="Invoice Date"
-          withAsterisk
-          key={form.key("date")}
-          {...form.getInputProps("date")}
-        />
+        <Stack gap={4}>
+          <MonthPickerInput
+            mt="md"
+            label="Invoice Date"
+            placeholder="Invoice Date"
+            withAsterisk
+            key={form.key("date")}
+            {...form.getInputProps("date")}
+            onChange={handleMonthChange}
+          />
+          <Collapse expanded={customPeriod}>
+            <Group mt="xs" grow align="flex-start">
+              <DatePickerInput
+                label="Period start"
+                placeholder="Start date"
+                value={periodStart}
+                onChange={handlePeriodStartChange}
+                error={periodError && !periodStart ? periodError : null}
+              />
+              <DatePickerInput
+                label="Period end"
+                placeholder="End date"
+                value={periodEnd}
+                onChange={handlePeriodEndChange}
+                minDate={periodStart ?? undefined}
+                error={
+                  periodError && periodStart && !periodEnd ? periodError : null
+                }
+              />
+            </Group>
+            {periodError && periodStart && periodEnd && (
+              <Text size="xs" c="red" mt={4}>
+                {periodError}
+              </Text>
+            )}
+          </Collapse>
+          <Text size="xs" c="dimmed" mt={4}>
+            {customPeriod ? (
+              <>
+                Custom period active —{" "}
+                <Anchor size="xs" onClick={resetCustomPeriod}>
+                  reset to full month
+                </Anchor>
+              </>
+            ) : (
+              <Anchor size="xs" onClick={enableCustomPeriod}>
+                Customize period
+              </Anchor>
+            )}
+          </Text>
+        </Stack>
 
         <Select
           mt="md"
@@ -154,7 +287,9 @@ export default function InvoiceDataForm() {
         </Group>
 
         <Group align="center" mb="xl" grow>
-          <Button type="submit">Save</Button>
+          <Button type="submit" disabled={!hasChanges}>
+            Save
+          </Button>
         </Group>
       </Stack>
     </form>

@@ -15,7 +15,7 @@ const PDFViewer = dynamic(
   {
     ssr: false,
     loading: () => <p>Loading...</p>,
-  }
+  },
 );
 const styles = StyleSheet.create({
   page: {
@@ -195,7 +195,7 @@ function MyDocument({
   const calculateDueDate = (
     invoiceDate: Date,
     dueTerms: string,
-    customDays?: number
+    customDays?: number,
   ): Date => {
     const dueDate = new Date(invoiceDate);
 
@@ -224,7 +224,7 @@ function MyDocument({
   // Get payment terms label for display
   const getPaymentTermsLabel = (
     dueTerms: string,
-    customDays?: number
+    customDays?: number,
   ): string => {
     switch (dueTerms) {
       case "due_on_receipt":
@@ -251,6 +251,9 @@ function MyDocument({
 
   // Generate the invoice period
   const generateInvoicePeriod = (date: Date) => {
+    if (invoiceFromData.periodStart && invoiceFromData.periodEnd) {
+      return `${formatDate(invoiceFromData.periodStart)} - ${formatDate(invoiceFromData.periodEnd)}`;
+    }
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
     return `${formatDate(startOfMonth)} - ${formatDate(endOfMonth)}`;
@@ -259,7 +262,7 @@ function MyDocument({
   // Calculate Subtotal and Total
   const subtotal = invoiceFromData.items.reduce(
     (acc, item) => acc + item.price * item.quantity,
-    0
+    0,
   );
   const taxRate = 0; // Update as necessary
   const tax = subtotal * (taxRate / 100);
@@ -290,8 +293,8 @@ function MyDocument({
                   calculateDueDate(
                     invoiceFromData.date,
                     invoiceFromData.dueTerms,
-                    invoiceFromData.customDueDays
-                  )
+                    invoiceFromData.customDueDays,
+                  ),
                 )}
               </Text>
             </View>
@@ -306,7 +309,7 @@ function MyDocument({
               <Text style={styles.detailValue}>
                 {getPaymentTermsLabel(
                   invoiceFromData.dueTerms,
-                  invoiceFromData.customDueDays
+                  invoiceFromData.customDueDays,
                 )}
               </Text>
             </View>

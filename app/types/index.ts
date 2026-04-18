@@ -17,6 +17,8 @@ export interface InvoiceData {
   date: Date;
   dueTerms: string;
   customDueDays?: number;
+  periodStart?: Date;
+  periodEnd?: Date;
   items: InvoiceItem[];
 }
 

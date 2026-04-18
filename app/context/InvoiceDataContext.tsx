@@ -1,3 +1,7 @@
+"use client";
+
+"use client";
+
 import React, {
   createContext,
   useContext,
@@ -39,6 +43,9 @@ const loadInitialState = (): InvoiceData => {
         parsedData.date = new Date();
         parsedData.dueTerms = parsedData.dueTerms || "due_on_receipt";
         parsedData.customDueDays = parsedData.customDueDays || undefined;
+        // Period is never persisted — always starts blank
+        parsedData.periodStart = undefined;
+        parsedData.periodEnd = undefined;
         return parsedData;
       }
     }
@@ -48,6 +55,8 @@ const loadInitialState = (): InvoiceData => {
       date: new Date(),
       dueTerms: "due_on_receipt",
       customDueDays: undefined,
+      periodStart: undefined,
+      periodEnd: undefined,
       items: [
         {
           description: "",
@@ -63,6 +72,8 @@ const loadInitialState = (): InvoiceData => {
       date: new Date(),
       dueTerms: "due_on_receipt",
       customDueDays: undefined,
+      periodStart: undefined,
+      periodEnd: undefined,
       items: [
         {
           description: "",
@@ -79,6 +90,8 @@ const defaultState: InvoiceData = {
   date: new Date(),
   dueTerms: "due_on_receipt",
   customDueDays: undefined,
+  periodStart: undefined,
+  periodEnd: undefined,
   items: [
     {
       description: "",
@@ -91,23 +104,29 @@ const defaultState: InvoiceData = {
 
 export const InvoiceDataProvider = ({ children }: { children: ReactNode }) => {
   const [formData, setFormData] = useState<InvoiceData>(defaultState);
+  // isLoaded uses state (not a ref) so it resets on StrictMode remount,
+  // preventing the save effect from firing before the load effect runs.
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
     setFormData(loadInitialState());
+    setIsLoaded(true);
   }, []);
 
   useEffect(() => {
+    if (!isLoaded) return;
     if (isBrowser) {
       const dataToStore = {
         date: null,
         dueTerms: formData.dueTerms,
         customDueDays: formData.customDueDays,
-        items: [formData.items[0]],
+        // periodStart / periodEnd are intentionally not persisted
+        items: formData.items,
       };
       localStorage.setItem("invoiceData", JSON.stringify(dataToStore));
     }
-  }, [formData]);
+  }, [formData, isLoaded]);
 
   return (
     <InvoiceDataContext.Provider

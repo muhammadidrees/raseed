@@ -59,19 +59,21 @@ const defaultState: BankInfo = {
 
 export const BankFormProvider = ({ children }: { children: ReactNode }) => {
   const [formData, setFormData] = useState<BankInfo>(defaultState);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
-    const stored = loadInitialState();
-    setFormData(stored);
+    setFormData(loadInitialState());
+    setIsLoaded(true);
   }, []);
 
-  // Save formData to localStorage whenever it changes
+  // Save formData to localStorage only after real data has loaded
   useEffect(() => {
+    if (!isLoaded) return;
     if (isBrowser) {
       localStorage.setItem("bankFormData", JSON.stringify(formData));
     }
-  }, [formData]);
+  }, [formData, isLoaded]);
 
   return (
     <BankInfoFormContext.Provider

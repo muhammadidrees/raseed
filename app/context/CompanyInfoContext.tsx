@@ -81,6 +81,8 @@ export const CompanyFormProvider = ({
 }) => {
   const [formData, setFormData] = useState<CompanyInfo>(defaultState);
 
+  const [isLoaded, setIsLoaded] = useState(false);
+
   // Load the correct data after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
     if (company?.toLowerCase() === "makula") {
@@ -88,14 +90,14 @@ export const CompanyFormProvider = ({
     } else {
       setFormData(loadInitialState());
     }
+    setIsLoaded(true);
   }, [company]);
 
-  // Save formData to localStorage only when no company prop is provided
+  // Save formData to localStorage only after real data has loaded and no company prop
   useEffect(() => {
-    if (!company && isBrowser) {
-      localStorage.setItem("companyFormData", JSON.stringify(formData));
-    }
-  }, [formData, company]);
+    if (!isLoaded || !isBrowser || company) return;
+    localStorage.setItem("companyFormData", JSON.stringify(formData));
+  }, [formData, isLoaded, company]);
 
   return (
     <CompanyInfoFormContext.Provider
