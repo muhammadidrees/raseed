@@ -87,7 +87,7 @@ const loadInitialState = (): InvoiceData => {
 };
 
 const defaultState: InvoiceData = {
-  date: new Date(),
+  date: new Date(0), // stable placeholder; real date set after hydration from localStorage or current date
   dueTerms: "due_on_receipt",
   customDueDays: undefined,
   periodStart: undefined,

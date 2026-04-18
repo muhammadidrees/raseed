@@ -356,18 +356,21 @@ function MyDocument({
           </View>
 
           {/* Table Rows */}
-          {invoiceFromData.items.map((item) => (
-            <View key={item.key} style={styles.tableRow}>
-              <Text style={styles.tableCellDescription}>
-                {item.description}
-              </Text>
-              <Text style={styles.tableCell}>{item.price.toFixed(2)}</Text>
-              <Text style={styles.tableCell}>{item.quantity}</Text>
-              <Text style={styles.tableCellLineTotal}>
-                {(item.price * item.quantity).toFixed(2)}
-              </Text>
-            </View>
-          ))}
+          {invoiceFromData.items.map((item) => {
+            const description = item.isBonusPayout
+              ? `Bonus Payout - ${new Date(invoiceFromData.date).toLocaleString("default", { month: "long" })}`
+              : item.description;
+            return (
+              <View key={item.key} style={styles.tableRow}>
+                <Text style={styles.tableCellDescription}>{description}</Text>
+                <Text style={styles.tableCell}>{item.price.toFixed(2)}</Text>
+                <Text style={styles.tableCell}>{item.quantity}</Text>
+                <Text style={styles.tableCellLineTotal}>
+                  {(item.price * item.quantity).toFixed(2)}
+                </Text>
+              </View>
+            );
+          })}
 
           {/* Subtotal and Total Rows */}
           <View style={styles.totalRow}>

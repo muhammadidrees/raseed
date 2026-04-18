@@ -27,6 +27,7 @@ export interface InvoiceItem {
   quantity: number;
   price: number;
   key: string;
+  isBonusPayout?: boolean;
 }
 
 export interface PersonalInfo {

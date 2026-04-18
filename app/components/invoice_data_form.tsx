@@ -13,11 +13,14 @@ import {
   Select,
   Anchor,
   Collapse,
+  Modal,
+  Box,
+  Paper,
 } from "@mantine/core";
 import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
-import { IconTrash, IconCurrencyEuro } from "@tabler/icons-react";
+import { IconTrash, IconCurrencyEuro, IconGift } from "@tabler/icons-react";
 import { randomId } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 
@@ -56,6 +59,28 @@ function hasPersistableChanges(
 
 export default function InvoiceDataForm() {
   const { invoiceFromData: formData, setFormData } = useInvoiceDataContext();
+
+  // Salary is stored in its own localStorage key — separate from personal info
+  const [monthlySalary, setMonthlySalary] = useState<number | string>("");
+  const [salaryLoaded, setSalaryLoaded] = useState(false);
+  const [bonusModalOpen, setBonusModalOpen] = useState(false);
+  const [bonusPercent, setBonusPercent] = useState<number | string>(25);
+  const [spreadMonths, setSpreadMonths] = useState<number | string>(3);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("monthlySalary");
+    if (stored) setMonthlySalary(parseFloat(stored));
+    setSalaryLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!salaryLoaded) return;
+    if (monthlySalary !== "" && monthlySalary !== 0) {
+      localStorage.setItem("monthlySalary", String(monthlySalary));
+    } else {
+      localStorage.removeItem("monthlySalary");
+    }
+  }, [monthlySalary, salaryLoaded]);
 
   // Period dates are session-only (not persisted) — managed as local state
   const [customPeriod, setCustomPeriod] = useState(false);
@@ -134,40 +159,56 @@ export default function InvoiceDataForm() {
     onFromSubmit(form, setFormData, periodStart, periodEnd, customPeriod);
   };
 
-  const fields = form.getValues().items.map((item, index) => (
-    <Group key={item.key}>
-      <TextInput
-        placeholder="Desription"
-        withAsterisk
-        style={{ flex: 4 }}
-        key={form.key(`items.${index}.description`)}
-        {...form.getInputProps(`items.${index}.description`)}
-      />
+  const fields = form.getValues().items.map((item, index) => {
+    const invoiceDate = currentValues.date ?? new Date();
+    const monthName = new Date(invoiceDate).toLocaleString("default", {
+      month: "long",
+    });
+    return (
+      <Group key={item.key}>
+        {item.isBonusPayout ? (
+          <TextInput
+            style={{ flex: 4 }}
+            value={`Bonus Payout - ${monthName}`}
+            readOnly
+            leftSection={<IconGift size="0.9rem" />}
+            styles={{ input: { fontStyle: "italic", opacity: 0.8 } }}
+          />
+        ) : (
+          <TextInput
+            placeholder="Description"
+            withAsterisk
+            style={{ flex: 4 }}
+            key={form.key(`items.${index}.description`)}
+            {...form.getInputProps(`items.${index}.description`)}
+          />
+        )}
 
-      <NumberInput
-        placeholder="Qty"
-        style={{ flex: 1 }}
-        key={form.key(`items.${index}.quantity`)}
-        {...form.getInputProps(`items.${index}.quantity`)}
-      />
-      <NumberInput
-        placeholder="Amount"
-        style={{ flex: 1 }}
-        key={form.key(`items.${index}.price`)}
-        {...form.getInputProps(`items.${index}.price`)}
-        hideControls
-        rightSection={<IconCurrencyEuro />}
-      />
+        <NumberInput
+          placeholder="Qty"
+          style={{ flex: 1 }}
+          key={form.key(`items.${index}.quantity`)}
+          {...form.getInputProps(`items.${index}.quantity`)}
+        />
+        <NumberInput
+          placeholder="Amount"
+          style={{ flex: 1 }}
+          key={form.key(`items.${index}.price`)}
+          {...form.getInputProps(`items.${index}.price`)}
+          hideControls
+          rightSection={<IconCurrencyEuro />}
+        />
 
-      <ActionIcon
-        color="red"
-        disabled={index === 0}
-        onClick={() => form.removeListItem("items", index)}
-      >
-        <IconTrash size="1rem" />
-      </ActionIcon>
-    </Group>
-  ));
+        <ActionIcon
+          color="red"
+          disabled={index === 0}
+          onClick={() => form.removeListItem("items", index)}
+        >
+          <IconTrash size="1rem" />
+        </ActionIcon>
+      </Group>
+    );
+  });
 
   return (
     <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -284,7 +325,143 @@ export default function InvoiceDataForm() {
           >
             Add item
           </Button>
+          <Button
+            variant="light"
+            color="violet"
+            leftSection={<IconGift size="1rem" />}
+            onClick={() => {
+              if (!monthlySalary) {
+                const firstItem = form.getValues().items[0];
+                if (firstItem?.price) setMonthlySalary(firstItem.price);
+              }
+              setBonusModalOpen(true);
+            }}
+          >
+            Add Bonus Payout
+          </Button>
         </Group>
+
+        <Modal
+          opened={bonusModalOpen}
+          onClose={() => setBonusModalOpen(false)}
+          title="Bonus Payout"
+          centered
+        >
+          <Stack gap="sm">
+            <NumberInput
+              label="Monthly Salary"
+              placeholder="Your monthly salary"
+              min={0}
+              hideControls
+              value={monthlySalary}
+              onChange={setMonthlySalary}
+              rightSection={<IconCurrencyEuro size="1rem" />}
+            />
+            <Group grow>
+              <NumberInput
+                label="Bonus %"
+                description="Percentage of salary"
+                min={1}
+                max={100}
+                value={bonusPercent}
+                onChange={setBonusPercent}
+                rightSection={
+                  <Text size="xs" c="dimmed">
+                    %
+                  </Text>
+                }
+              />
+              <NumberInput
+                label="Spread over"
+                description="Number of months to spread it over"
+                min={1}
+                max={12}
+                value={spreadMonths}
+                onChange={setSpreadMonths}
+              />
+            </Group>
+
+            {(() => {
+              const salary = Number(monthlySalary);
+              const pct = Number(bonusPercent);
+              const months = Number(spreadMonths);
+              const invoiceDate = form.getValues().date ?? new Date();
+              const monthName = new Date(invoiceDate).toLocaleString(
+                "default",
+                { month: "long" },
+              );
+              const amount =
+                salary > 0 && pct > 0 && months > 0
+                  ? (salary * pct) / 100 / months
+                  : null;
+              return (
+                <Paper
+                  withBorder
+                  p="sm"
+                  radius="sm"
+                  style={{ borderColor: "var(--mantine-color-violet-filled)" }}
+                >
+                  <Text size="xs" c="dimmed" mb={4}>
+                    Preview
+                  </Text>
+                  <Text size="sm" fw={500}>
+                    Bonus Payout - {monthName}
+                  </Text>
+                  {amount ? (
+                    <>
+                      <Text size="xs" c="dimmed" mt={4}>
+                        €{salary} × {pct}% ÷ {months}{" "}
+                        {months === 1 ? "month" : "months"} = €
+                        {amount.toFixed(2)}
+                      </Text>
+                      <Text size="sm" c="violet.5" fw={600} mt={2}>
+                        €{amount.toFixed(2)}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text size="sm" c="dimmed">
+                      Enter salary to see amount
+                    </Text>
+                  )}
+                </Paper>
+              );
+            })()}
+
+            <Group mt="sm" justify="flex-end">
+              <Button
+                variant="default"
+                onClick={() => setBonusModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                color="violet"
+                disabled={!monthlySalary}
+                onClick={() => {
+                  const salary = Number(monthlySalary);
+                  const pct = Number(bonusPercent);
+                  const months = Number(spreadMonths);
+                  const bonusAmount = (salary * pct) / 100 / months;
+                  const invoiceDate = form.getValues().date ?? new Date();
+                  const monthName = new Date(invoiceDate).toLocaleString(
+                    "default",
+                    { month: "long" },
+                  );
+                  form.insertListItem("items", {
+                    description: `Bonus Payout - ${monthName}`,
+                    quantity: 1,
+                    price: parseFloat(bonusAmount.toFixed(2)),
+                    key: randomId(),
+                    isBonusPayout: true,
+                  });
+                  setBonusModalOpen(false);
+                }}
+              >
+                Add to Invoice
+              </Button>
+            </Group>
+          </Stack>
+        </Modal>
 
         <Group align="center" mb="xl" grow>
           <Button type="submit" disabled={!hasChanges}>
