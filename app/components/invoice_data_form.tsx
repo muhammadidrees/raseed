@@ -20,6 +20,7 @@ import {
 import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext";
 import { IconTrash, IconCurrencyEuro, IconGift } from "@tabler/icons-react";
 import { randomId } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -59,6 +60,7 @@ function hasPersistableChanges(
 
 export default function InvoiceDataForm() {
   const { invoiceFromData: formData, setFormData } = useInvoiceDataContext();
+  const { markUnsaved } = useUnsavedChanges();
 
   // Salary is stored in its own localStorage key — separate from personal info
   const [monthlySalary, setMonthlySalary] = useState<number | string>("");
@@ -97,6 +99,10 @@ export default function InvoiceDataForm() {
 
   const hasChanges =
     hasPersistableChanges(currentValues, formData) || customPeriod;
+
+  useEffect(() => {
+    markUnsaved("Invoice Data", hasChanges);
+  }, [hasChanges]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     form.setValues(formData);

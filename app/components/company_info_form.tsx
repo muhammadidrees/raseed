@@ -5,6 +5,7 @@ import { isNotEmpty, useForm, UseFormReturnType } from "@mantine/form";
 import { TextInput, Button, Group, Stack, Accordion } from "@mantine/core";
 import { CompanyInfo } from "../types";
 import { useCompanyFormContext } from "../context/CompanyInfoContext";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext";
 import { notifications } from "@mantine/notifications";
 import { AccordianControl } from "./AccordianControl";
 
@@ -23,6 +24,7 @@ function onFromSubmit(
 
 export default function CompanyInfoAccordion() {
   const { companyFormData: formData, setFormData } = useCompanyFormContext();
+  const { markUnsaved } = useUnsavedChanges();
 
   const form = useForm<CompanyInfo>({
     initialValues: formData,
@@ -42,6 +44,10 @@ export default function CompanyInfoAccordion() {
 
   const isSaveDisabled =
     JSON.stringify(form.values) === JSON.stringify(formData);
+
+  useEffect(() => {
+    markUnsaved("Company Info", !isSaveDisabled);
+  }, [isSaveDisabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFormEmpty =
     formData.name === "" &&

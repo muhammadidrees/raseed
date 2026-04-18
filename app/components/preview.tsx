@@ -17,6 +17,7 @@ const PDFViewer = dynamic(
     loading: () => <p>Loading...</p>,
   },
 );
+
 const styles = StyleSheet.create({
   page: {
     backgroundColor: "#ffffff",
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   },
 });
 
-function MyDocument({
+export function MyDocument({
   companyFormData,
   personalFormData,
   invoiceFromData,
@@ -454,8 +455,8 @@ export function PdfView() {
   }
 
   return (
-    <div style={{ height: "90vh", display: "flex", flexDirection: "column" }}>
-      <PDFViewer style={{ flex: 1 }}>
+    <div style={{ height: "90vh" }}>
+      <PDFViewer style={{ width: "100%", height: "100%" }}>
         <MyDocument
           personalFormData={personalFormData}
           companyFormData={companyFormData}

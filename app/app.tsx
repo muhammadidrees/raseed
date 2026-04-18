@@ -8,6 +8,8 @@ import { BankFormProvider } from "./context/BankInfoContext";
 import Preview from "./components/preview";
 import { InvoiceDataProvider } from "./context/InvoiceDataContext";
 import { Suspense } from "react";
+import { ExportModal } from "./components/ExportModal";
+import { UnsavedChangesProvider } from "./context/UnsavedChangesContext";
 
 function Main() {
   return (
@@ -25,24 +27,27 @@ function Main() {
 export default function App({ company }: { company?: string }) {
   return (
     <Suspense>
-      <InvoiceDataProvider>
-        <PersonalFormProvider>
-          <CompanyFormProvider company={company}>
-            <BankFormProvider>
-              <AppShell padding="md" header={{ height: 60 }}>
-                <AppShell.Header>
-                  <Group h="100%" px="md">
-                    <Title order={3}>RASEED</Title>
-                  </Group>
-                </AppShell.Header>
-                <AppShell.Main>
-                  <Main />
-                </AppShell.Main>
-              </AppShell>
-            </BankFormProvider>
-          </CompanyFormProvider>
-        </PersonalFormProvider>
-      </InvoiceDataProvider>
+      <UnsavedChangesProvider>
+        <InvoiceDataProvider>
+          <PersonalFormProvider>
+            <CompanyFormProvider company={company}>
+              <BankFormProvider>
+                <AppShell padding="md" header={{ height: 60 }}>
+                  <AppShell.Header>
+                    <Group h="100%" px="md" justify="space-between">
+                      <Title order={3}>RASEED</Title>
+                      <ExportModal />
+                    </Group>
+                  </AppShell.Header>
+                  <AppShell.Main>
+                    <Main />
+                  </AppShell.Main>
+                </AppShell>
+              </BankFormProvider>
+            </CompanyFormProvider>
+          </PersonalFormProvider>
+        </InvoiceDataProvider>
+      </UnsavedChangesProvider>
     </Suspense>
   );
 }

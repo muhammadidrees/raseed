@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { PersonalInfo } from "../types";
 import { usePersonalFormContext } from "../context/PersonalInfoContext";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext";
 import { AccordianControl } from "./AccordianControl";
 import { notifications } from "@mantine/notifications";
 
@@ -30,6 +31,7 @@ function onFromSubmit(
 
 export default function PersonalInfoAccordian() {
   const { personalFormData: formData, setFormData } = usePersonalFormContext();
+  const { markUnsaved } = useUnsavedChanges();
 
   const form = useForm<PersonalInfo>({
     initialValues: formData,
@@ -51,6 +53,10 @@ export default function PersonalInfoAccordian() {
 
   const isSaveDisabled =
     JSON.stringify(form.values) === JSON.stringify(formData);
+
+  useEffect(() => {
+    markUnsaved("Personal Info", !isSaveDisabled);
+  }, [isSaveDisabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFormEmpty =
     formData.name === "" ||
