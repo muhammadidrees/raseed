@@ -21,7 +21,12 @@ import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext";
-import { IconTrash, IconCurrencyEuro, IconGift } from "@tabler/icons-react";
+import {
+  IconTrash,
+  IconCurrencyEuro,
+  IconGift,
+  IconCheck,
+} from "@tabler/icons-react";
 import { randomId } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 
@@ -178,6 +183,58 @@ export default function InvoiceDataForm() {
     setPeriodError(null);
   };
 
+  // Pro-rate calculator — session-only, derived from custom period + monthlySalary
+  const intervalDays =
+    customPeriod && periodStart && periodEnd
+      ? Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1
+      : 0;
+  const daysInMonth = new Date(
+    (currentValues.date ?? new Date()).getFullYear(),
+    (currentValues.date ?? new Date()).getMonth() + 1,
+    0,
+  ).getDate();
+  const proRatedAmount =
+    monthlySalary && intervalDays > 0
+      ? (Number(monthlySalary) / daysInMonth) * intervalDays
+      : null;
+
+  const [proRateAdded, setProRateAdded] = useState<string | null>(null);
+  const [highlightedItemIdx, setHighlightedItemIdx] = useState<number | null>(
+    null,
+  );
+  const applyProRatedAmount = () => {
+    if (proRatedAmount === null) return;
+    const rounded = Math.round(proRatedAmount * 100) / 100;
+    const fullRate = Number(monthlySalary);
+    const items = form.getValues().items;
+    const targetIdx =
+      items.findIndex((it) => !it.isBonusPayout && it.price === fullRate) !== -1
+        ? items.findIndex((it) => !it.isBonusPayout && it.price === fullRate)
+        : items.findIndex(
+            (it) =>
+              !it.isBonusPayout && (it.price === 0 || it.price === rounded),
+          );
+    if (targetIdx !== -1) {
+      form.setFieldValue(`items.${targetIdx}.price`, rounded);
+      setProRateAdded(`Updated item ${targetIdx + 1} amount ↓`);
+      setHighlightedItemIdx(targetIdx);
+    } else {
+      form.insertListItem("items", {
+        description: "",
+        quantity: 1,
+        price: rounded,
+        key: randomId(),
+      });
+      const newIdx = form.getValues().items.length;
+      setProRateAdded("Added to invoice items ↓");
+      setHighlightedItemIdx(newIdx);
+    }
+    setTimeout(() => {
+      setProRateAdded(null);
+      setHighlightedItemIdx(null);
+    }, 2500);
+  };
+
   const handleSubmit = () => {
     if (customPeriod) {
       if (!periodStart || !periodEnd) {
@@ -198,7 +255,19 @@ export default function InvoiceDataForm() {
       month: "long",
     });
     return (
-      <Group key={item.key}>
+      <Group
+        key={item.key}
+        style={{
+          borderRadius: 6,
+          padding: "4px 6px",
+          margin: "-4px -6px",
+          transition: "background 0.4s ease",
+          background:
+            highlightedItemIdx === index
+              ? "var(--mantine-color-teal-light)"
+              : "transparent",
+        }}
+      >
         {item.isBonusPayout ? (
           <TextInput
             style={{ flex: 4 }}
@@ -297,6 +366,76 @@ export default function InvoiceDataForm() {
             )}
           </Text>
         </Stack>
+
+        {customPeriod &&
+          periodStart &&
+          periodEnd &&
+          (() => {
+            // Pre-fill monthly rate from first item if not already set
+            if (!monthlySalary) {
+              const firstItem = form.getValues().items[0];
+              if (firstItem?.price) setMonthlySalary(firstItem.price);
+            }
+            const isFullMonth = intervalDays === daysInMonth;
+            return (
+              <Paper withBorder p="sm" radius="md">
+                <Text size="xs" c="dimmed" fw={500} mb={2}>
+                  Pro-rate calculator
+                </Text>
+                {isFullMonth ? (
+                  <Text size="xs" c="dimmed" lh={1.5}>
+                    Period covers the full month — adjust the dates to calculate
+                    a pro-rated amount.
+                  </Text>
+                ) : (
+                  <>
+                    <Text size="xs" c="dimmed" mb="xs" lh={1.5}>
+                      If you worked only part of the month, enter your full
+                      monthly rate to calculate the proportional amount for this
+                      period.
+                    </Text>
+                    <NumberInput
+                      label="Monthly rate"
+                      size="xs"
+                      value={monthlySalary}
+                      onChange={setMonthlySalary}
+                      hideControls
+                      rightSection={<IconCurrencyEuro size="0.8rem" />}
+                      mb="xs"
+                    />
+                    {proRatedAmount !== null ? (
+                      <>
+                        <Text size="xs" c="dimmed" mb="xs">
+                          (€{Number(monthlySalary).toLocaleString()} ÷{" "}
+                          {daysInMonth} days) × {intervalDays} days ={" "}
+                          <Text span fw={600}>
+                            €{proRatedAmount.toFixed(2)}
+                          </Text>
+                        </Text>
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color={proRateAdded ? "teal" : "blue"}
+                          leftSection={
+                            proRateAdded ? <IconCheck size={13} /> : undefined
+                          }
+                          fullWidth
+                          onClick={applyProRatedAmount}
+                        >
+                          {proRateAdded ?? "Apply to invoice"}
+                        </Button>
+                      </>
+                    ) : (
+                      <Text size="xs" c="dimmed">
+                        Enter your monthly rate above to calculate the pro-rated
+                        amount
+                      </Text>
+                    )}
+                  </>
+                )}
+              </Paper>
+            );
+          })()}
 
         <Select
           mt="md"
@@ -472,7 +611,7 @@ export default function InvoiceDataForm() {
                   {amount ? (
                     <>
                       <Text size="xs" c="dimmed" mt={4}>
-                        €{salary} × {pct}% ÷ {months}{" "}
+                        (€{salary} × {pct}%) ÷ {months}{" "}
                         {months === 1 ? "month" : "months"} = €
                         {amount.toFixed(2)}
                       </Text>
@@ -503,7 +642,7 @@ export default function InvoiceDataForm() {
                   const salary = Number(monthlySalary);
                   const pct = Number(bonusPercent);
                   const months = Number(spreadMonths);
-                  const bonusAmount = (salary * pct) / 100 / months;
+                  const bonusAmount = (salary * pct) / (100 * months);
                   const invoiceDate = form.getValues().date ?? new Date();
                   const monthName = new Date(invoiceDate).toLocaleString(
                     "default",
