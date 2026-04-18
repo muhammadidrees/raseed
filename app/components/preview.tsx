@@ -456,7 +456,7 @@ export function PdfView() {
 
   return (
     <div style={{ height: "90vh" }}>
-      <PDFViewer style={{ width: "100%", height: "100%" }}>
+      <PDFViewer style={{ width: "100%", height: "100%" }} showToolbar={false}>
         <MyDocument
           personalFormData={personalFormData}
           companyFormData={companyFormData}

@@ -25,6 +25,33 @@ import { IconTrash, IconCurrencyEuro, IconGift } from "@tabler/icons-react";
 import { randomId } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 
+const TERM_DESCRIPTIONS: Record<string, string> = {
+  due_on_receipt: "Payment expected immediately upon receipt",
+  net_15: "Due 15 days after invoice date",
+  net_30: "Due 30 days after invoice date — standard business term",
+  net_60: "Due 60 days after invoice date — common for large contracts",
+  custom: "Set your own number of days",
+};
+
+const TERM_DAYS: Record<string, number> = {
+  due_on_receipt: 0,
+  net_15: 15,
+  net_30: 30,
+  net_60: 60,
+};
+
+function computeDueDate(
+  invoiceDate: Date,
+  dueTerms: string,
+  customDueDays?: number,
+): Date {
+  const date = new Date(invoiceDate);
+  const days =
+    dueTerms === "custom" ? (customDueDays ?? 0) : (TERM_DAYS[dueTerms] ?? 0);
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
 function onFromSubmit(
   form: UseFormReturnType<InvoiceData>,
   setFormData: React.Dispatch<React.SetStateAction<InvoiceData>>,
@@ -284,6 +311,16 @@ export default function InvoiceDataForm() {
             { value: "net_60", label: "Net 60" },
             { value: "custom", label: "Custom" },
           ]}
+          renderOption={({ option }) => (
+            <Stack gap={1} py={2}>
+              <Text size="sm" fw={500}>
+                {option.label}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {TERM_DESCRIPTIONS[option.value]}
+              </Text>
+            </Stack>
+          )}
           allowDeselect={false}
           key={form.key("dueTerms")}
           {...form.getInputProps("dueTerms")}
@@ -301,6 +338,25 @@ export default function InvoiceDataForm() {
             key={form.key("customDueDays")}
             {...form.getInputProps("customDueDays")}
           />
+        )}
+
+        {currentValues.dueTerms && (
+          <Group gap={6} mt={-4}>
+            <Text size="xs" c="dimmed">
+              Due date:
+            </Text>
+            <Text size="xs" fw={600}>
+              {computeDueDate(
+                currentValues.date ?? new Date(),
+                currentValues.dueTerms,
+                currentValues.customDueDays,
+              ).toLocaleDateString("default", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </Text>
+          </Group>
         )}
 
         {fields.length > 0 ? (

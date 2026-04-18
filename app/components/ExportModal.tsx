@@ -8,13 +8,11 @@ import {
   TextInput,
   Textarea,
   Group,
-  Tooltip,
   Stack,
   Text,
   Paper,
   SimpleGrid,
   CopyButton,
-  ActionIcon,
   Alert,
 } from "@mantine/core";
 import {
@@ -121,11 +119,10 @@ export function ExportModal() {
               title="Unsaved changes"
               style={{ gridColumn: "1 / -1" }}
             >
-              {unsavedLabels.join(", ")}{" "}
-              {unsavedLabels.length === 1 ? "has" : "have"} unsaved changes and
-              won&apos;t be reflected in the downloaded PDF.
+              {`${unsavedLabels.join(", ")} ${unsavedLabels.length === 1 ? "has" : "have"} unsaved changes and won't be reflected in the downloaded PDF.`}
             </Alert>
           )}
+
           {/* LEFT — Primary: PDF download */}
           <Paper withBorder radius="md" p="lg">
             <Group gap="xs" mb="lg">
@@ -156,7 +153,6 @@ export function ExportModal() {
                     loading={loading}
                     disabled={loading}
                     variant="filled"
-                    color="dark"
                     size="md"
                   >
                     {loading ? "Preparing…" : "Download PDF"}
@@ -182,74 +178,55 @@ export function ExportModal() {
                 onChange={(e) => setEmailSubject(e.currentTarget.value)}
                 variant="filled"
                 styles={{ input: { fontSize: 13 } }}
-                rightSectionWidth={36}
-                rightSection={
-                  <CopyButton value={emailSubject} timeout={2000}>
-                    {({ copied, copy }) => (
-                      <Tooltip
-                        label={copied ? "Copied!" : "Copy subject"}
-                        withArrow
-                        position="top"
-                      >
-                        <ActionIcon
-                          size="sm"
-                          variant="subtle"
-                          color={copied ? "teal" : "gray"}
-                          onClick={copy}
-                        >
-                          {copied ? (
-                            <IconCheck size={13} />
-                          ) : (
-                            <IconCopy size={13} />
-                          )}
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                  </CopyButton>
-                }
               />
+              <CopyButton value={emailSubject} timeout={2000}>
+                {({ copied, copy }) => (
+                  <Button
+                    size="xs"
+                    variant={copied ? "filled" : "light"}
+                    color={copied ? "teal" : "blue"}
+                    leftSection={
+                      copied ? <IconCheck size={13} /> : <IconCopy size={13} />
+                    }
+                    onClick={copy}
+                    fullWidth
+                  >
+                    {copied ? "Subject copied!" : "Copy subject"}
+                  </Button>
+                )}
+              </CopyButton>
 
-              <div style={{ position: "relative" }}>
-                <Textarea
-                  label="Body"
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.currentTarget.value)}
-                  variant="filled"
-                  autosize
-                  minRows={5}
-                  styles={{
-                    input: {
-                      fontFamily: "monospace",
-                      fontSize: 12,
-                      lineHeight: 1.7,
-                      paddingRight: 32,
-                    },
-                  }}
-                />
-                <CopyButton value={emailBody} timeout={2000}>
-                  {({ copied, copy }) => (
-                    <Tooltip
-                      label={copied ? "Copied!" : "Copy body"}
-                      withArrow
-                      position="left"
-                    >
-                      <ActionIcon
-                        size="sm"
-                        variant="subtle"
-                        color={copied ? "teal" : "gray"}
-                        onClick={copy}
-                        style={{ position: "absolute", top: 28, right: 6 }}
-                      >
-                        {copied ? (
-                          <IconCheck size={13} />
-                        ) : (
-                          <IconCopy size={13} />
-                        )}
-                      </ActionIcon>
-                    </Tooltip>
-                  )}
-                </CopyButton>
-              </div>
+              <Textarea
+                label="Body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.currentTarget.value)}
+                variant="filled"
+                autosize
+                minRows={5}
+                styles={{
+                  input: {
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                  },
+                }}
+              />
+              <CopyButton value={emailBody} timeout={2000}>
+                {({ copied, copy }) => (
+                  <Button
+                    size="xs"
+                    variant={copied ? "filled" : "light"}
+                    color={copied ? "teal" : "blue"}
+                    leftSection={
+                      copied ? <IconCheck size={13} /> : <IconCopy size={13} />
+                    }
+                    onClick={copy}
+                    fullWidth
+                  >
+                    {copied ? "Body copied!" : "Copy body"}
+                  </Button>
+                )}
+              </CopyButton>
             </Stack>
           </Paper>
         </SimpleGrid>
