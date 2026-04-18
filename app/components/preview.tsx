@@ -113,6 +113,11 @@ const styles = StyleSheet.create({
     padding: 5,
     textAlign: "left",
   },
+  tableCellLineTotal: {
+    flex: 1,
+    padding: 5,
+    textAlign: "right",
+  },
   totalRow: {
     flexDirection: "row",
     backgroundColor: "#f0f0f0",
@@ -347,7 +352,7 @@ function MyDocument({
             <Text style={styles.tableCellDescription}>Description</Text>
             <Text style={styles.tableCell}>Rate (€)</Text>
             <Text style={styles.tableCell}>Qty</Text>
-            <Text style={styles.tableCell}>Line Total (€)</Text>
+            <Text style={styles.tableCellLineTotal}>Line Total (€)</Text>
           </View>
 
           {/* Table Rows */}
@@ -358,7 +363,7 @@ function MyDocument({
               </Text>
               <Text style={styles.tableCell}>{item.price.toFixed(2)}</Text>
               <Text style={styles.tableCell}>{item.quantity}</Text>
-              <Text style={styles.tableCell}>
+              <Text style={styles.tableCellLineTotal}>
                 {(item.price * item.quantity).toFixed(2)}
               </Text>
             </View>
@@ -369,21 +374,23 @@ function MyDocument({
             <Text style={styles.tableCellDescription}></Text>
             <Text style={styles.tableCell}></Text>
             <Text style={styles.totalCellLabel}>Subtotal</Text>
-            <Text style={styles.totalCellValue}>{subtotal.toFixed(2)} €</Text>
+            <Text style={styles.tableCellLineTotal}>
+              {subtotal.toFixed(2)} €
+            </Text>
           </View>
           {taxRate > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.tableCellDescription}></Text>
               <Text style={styles.tableCell}></Text>
               <Text style={styles.totalCellLabel}>Tax ({taxRate}%)</Text>
-              <Text style={styles.totalCellValue}>{tax.toFixed(2)} €</Text>
+              <Text style={styles.tableCellLineTotal}>{tax.toFixed(2)} €</Text>
             </View>
           )}
           <View style={styles.totalRow}>
             <Text style={styles.tableCellDescription}></Text>
             <Text style={styles.tableCell}></Text>
             <Text style={styles.totalCellLabel}>Total</Text>
-            <Text style={styles.totalCellValue}>{total.toFixed(2)} €</Text>
+            <Text style={styles.tableCellLineTotal}>{total.toFixed(2)} €</Text>
           </View>
         </View>
 
