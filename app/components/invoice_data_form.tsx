@@ -129,8 +129,21 @@ export default function InvoiceDataForm() {
     onValuesChange: (values) => setCurrentValues(values),
   });
 
+  const savedPeriodStart = formData.periodStart
+    ? new Date(formData.periodStart)
+    : null;
+  const savedPeriodEnd = formData.periodEnd
+    ? new Date(formData.periodEnd)
+    : null;
+  const currentPeriodStart = customPeriod ? periodStart : null;
+  const currentPeriodEnd = customPeriod ? periodEnd : null;
+  const hasPeriodChanges =
+    (currentPeriodStart?.getTime() ?? null) !==
+      (savedPeriodStart?.getTime() ?? null) ||
+    (currentPeriodEnd?.getTime() ?? null) !==
+      (savedPeriodEnd?.getTime() ?? null);
   const hasChanges =
-    hasPersistableChanges(currentValues, formData) || customPeriod;
+    hasPersistableChanges(currentValues, formData) || hasPeriodChanges;
 
   useEffect(() => {
     markUnsaved("Invoice Data", hasChanges);
@@ -139,6 +152,13 @@ export default function InvoiceDataForm() {
   useEffect(() => {
     form.setValues(formData);
     setCurrentValues(formData);
+    const hasSavedPeriod = Boolean(formData.periodStart && formData.periodEnd);
+    setCustomPeriod(hasSavedPeriod);
+    setPeriodStart(
+      formData.periodStart ? new Date(formData.periodStart) : null,
+    );
+    setPeriodEnd(formData.periodEnd ? new Date(formData.periodEnd) : null);
+    setPeriodError(null);
   }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When the selected month changes, keep custom period in sync with new month
