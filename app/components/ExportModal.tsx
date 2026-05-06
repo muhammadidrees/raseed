@@ -23,6 +23,7 @@ import {
   IconMail,
   IconFileTypePdf,
   IconAlertTriangle,
+  IconExternalLink,
 } from "@tabler/icons-react";
 import dynamic from "next/dynamic";
 import { usePersonalFormContext } from "../context/PersonalInfoContext";
@@ -30,6 +31,7 @@ import { useCompanyFormContext } from "../context/CompanyInfoContext";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { useBankFormContext } from "../context/BankInfoContext";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext";
+import { useInvoiceShell } from "../context/InvoiceShellContext";
 import { MyDocument } from "./preview";
 
 const PDFDownloadLink = dynamic(
@@ -43,9 +45,11 @@ export function ExportModal() {
   const { invoiceFromData } = useInvoiceDataContext();
   const { bankFromData } = useBankFormContext();
   const { unsaved, hasAnyUnsaved } = useUnsavedChanges();
+  const { exportFileLabel, templateConfig } = useInvoiceShell();
 
   const [opened, { open, close }] = useDisclosure(false);
   const [fileName, setFileName] = useState("");
+  const [emailTo, setEmailTo] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
@@ -60,15 +64,23 @@ export function ExportModal() {
     const { monthAbbr, monthFull, year2, year4 } = getMonthYear(
       invoiceFromData.date,
     );
-    setFileName(
-      `${personalFormData.name} Makula Invoice - ${monthAbbr} ${year2}.pdf`,
-    );
-    setEmailSubject(`${personalFormData.name} - ${monthAbbr} ${year4} Invoice`);
+    const who = (personalFormData.name ?? "").trim() || "Invoice";
+    setFileName(`${who} ${exportFileLabel} Invoice - ${monthAbbr} ${year2}.pdf`);
+    setEmailTo(templateConfig.businessEmail ?? "");
+    setEmailSubject(`${who} - ${monthAbbr} ${year4} Invoice`);
     setEmailBody(
-      `Hello,\n\nPlease find the ${monthFull} ${year4} invoice attached.\n\nRegards,\n${personalFormData.name}.`,
+      `Hello,\n\nPlease find the ${monthFull} ${year4} invoice attached.\n\nRegards,\n${(personalFormData.name ?? "").trim() || "Contractor"}.`,
     );
     open();
   };
+
+  const mailtoHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (emailSubject) params.set("subject", emailSubject);
+    if (emailBody) params.set("body", emailBody);
+    const qs = params.toString();
+    return `mailto:${encodeURIComponent(emailTo)}${qs ? `?${qs}` : ""}`;
+  }, [emailTo, emailSubject, emailBody]);
 
   // Only compute doc when modal is open — prevents background PDF refresh
   const doc = useMemo(
@@ -79,6 +91,7 @@ export function ExportModal() {
           companyFormData={companyFormData}
           invoiceFromData={invoiceFromData}
           bankFormData={bankFromData}
+          templateConfig={templateConfig}
         />
       ) : (
         <></>
@@ -173,29 +186,21 @@ export function ExportModal() {
 
             <Stack gap="md">
               <TextInput
+                label="To"
+                placeholder="billing@yourcompany.com"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.currentTarget.value)}
+                variant="filled"
+                type="email"
+                styles={{ input: { fontSize: 13 } }}
+              />
+              <TextInput
                 label="Subject"
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.currentTarget.value)}
                 variant="filled"
                 styles={{ input: { fontSize: 13 } }}
               />
-              <CopyButton value={emailSubject} timeout={2000}>
-                {({ copied, copy }) => (
-                  <Button
-                    size="xs"
-                    variant={copied ? "filled" : "light"}
-                    color={copied ? "teal" : "blue"}
-                    leftSection={
-                      copied ? <IconCheck size={13} /> : <IconCopy size={13} />
-                    }
-                    onClick={copy}
-                    fullWidth
-                  >
-                    {copied ? "Subject copied!" : "Copy subject"}
-                  </Button>
-                )}
-              </CopyButton>
-
               <Textarea
                 label="Body"
                 value={emailBody}
@@ -211,22 +216,87 @@ export function ExportModal() {
                   },
                 }}
               />
-              <CopyButton value={emailBody} timeout={2000}>
-                {({ copied, copy }) => (
-                  <Button
-                    size="xs"
-                    variant={copied ? "filled" : "light"}
-                    color={copied ? "teal" : "blue"}
-                    leftSection={
-                      copied ? <IconCheck size={13} /> : <IconCopy size={13} />
-                    }
-                    onClick={copy}
-                    fullWidth
-                  >
-                    {copied ? "Body copied!" : "Copy body"}
-                  </Button>
-                )}
-              </CopyButton>
+
+              <Button
+                component="a"
+                href={mailtoHref}
+                fullWidth
+                leftSection={<IconExternalLink size={14} />}
+                variant="light"
+                size="sm"
+              >
+                Open in mail app
+              </Button>
+
+              <Text size="xs" c="dimmed">
+                Attach the downloaded PDF in your mail app — most mail clients
+                don&apos;t support attachments via{" "}
+                <Text span ff="monospace">
+                  mailto:
+                </Text>
+                .
+              </Text>
+
+              <Group grow gap="xs">
+                <CopyButton value={emailTo} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Button
+                      size="xs"
+                      variant={copied ? "filled" : "subtle"}
+                      color={copied ? "teal" : "gray"}
+                      leftSection={
+                        copied ? (
+                          <IconCheck size={13} />
+                        ) : (
+                          <IconCopy size={13} />
+                        )
+                      }
+                      onClick={copy}
+                      disabled={!emailTo}
+                    >
+                      {copied ? "To copied!" : "Copy to"}
+                    </Button>
+                  )}
+                </CopyButton>
+                <CopyButton value={emailSubject} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Button
+                      size="xs"
+                      variant={copied ? "filled" : "subtle"}
+                      color={copied ? "teal" : "gray"}
+                      leftSection={
+                        copied ? (
+                          <IconCheck size={13} />
+                        ) : (
+                          <IconCopy size={13} />
+                        )
+                      }
+                      onClick={copy}
+                    >
+                      {copied ? "Subject copied!" : "Copy subject"}
+                    </Button>
+                  )}
+                </CopyButton>
+                <CopyButton value={emailBody} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Button
+                      size="xs"
+                      variant={copied ? "filled" : "subtle"}
+                      color={copied ? "teal" : "gray"}
+                      leftSection={
+                        copied ? (
+                          <IconCheck size={13} />
+                        ) : (
+                          <IconCopy size={13} />
+                        )
+                      }
+                      onClick={copy}
+                    >
+                      {copied ? "Body copied!" : "Copy body"}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Group>
             </Stack>
           </Paper>
         </SimpleGrid>

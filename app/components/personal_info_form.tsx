@@ -1,26 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
-import { isNotEmpty, useForm, UseFormReturnType } from "@mantine/form";
-import {
-  TextInput,
-  Button,
-  Group,
-  Stack,
-  Accordion,
-  Select,
-} from "@mantine/core";
-import { PersonalInfo } from "../types";
+import { useEffect, useMemo } from "react";
+import { isNotEmpty, useForm, type UseFormReturnType } from "@mantine/form";
+import { TextInput, Button, Group, Stack, Accordion } from "@mantine/core";
+import type { PersonalInfo } from "../types";
 import { usePersonalFormContext } from "../context/PersonalInfoContext";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext";
+import { useInvoiceShell } from "../context/InvoiceShellContext";
 import { AccordianControl } from "./AccordianControl";
 import { notifications } from "@mantine/notifications";
+import type { TemplateFieldDefinition } from "@/lib/invoice-template";
+
+function buildValidation(fields: TemplateFieldDefinition[]) {
+  const out: Record<string, ReturnType<typeof isNotEmpty>> = {};
+  for (const f of fields) {
+    if (f.required) {
+      out[f.id] = isNotEmpty(`${f.label || "Field"} is required`);
+    }
+  }
+  return out;
+}
+
+function valuesEqual(
+  a: PersonalInfo,
+  b: PersonalInfo,
+  fieldIds: string[],
+): boolean {
+  for (const id of fieldIds) {
+    if ((a[id] ?? "").trim() !== (b[id] ?? "").trim()) return false;
+  }
+  return true;
+}
 
 function onFromSubmit(
   form: UseFormReturnType<PersonalInfo>,
   setFormData: React.Dispatch<React.SetStateAction<PersonalInfo>>,
 ) {
-  console.log(form.values);
   setFormData(form.values);
   notifications.show({
     color: "green",
@@ -32,39 +47,36 @@ function onFromSubmit(
 export default function PersonalInfoAccordian() {
   const { personalFormData: formData, setFormData } = usePersonalFormContext();
   const { markUnsaved } = useUnsavedChanges();
+  const { templateConfig } = useInvoiceShell();
+  const fields = templateConfig.contractorFields;
+
+  const initialValues = useMemo<PersonalInfo>(() => {
+    const out: PersonalInfo = {};
+    for (const f of fields) out[f.id] = formData[f.id] ?? "";
+    return out;
+  }, [fields, formData]);
+
+  const validation = useMemo(() => buildValidation(fields), [fields]);
 
   const form = useForm<PersonalInfo>({
-    initialValues: formData,
-    validate: {
-      name: isNotEmpty("Name is required"),
-      email: isNotEmpty("Email is required"),
-      taxID: isNotEmpty("Tax ID is required"),
-      address: {
-        street: isNotEmpty("Street is required"),
-        city: isNotEmpty("City is required"),
-        zip: isNotEmpty("Zip is required"),
-      },
-    },
+    initialValues,
+    validate: validation,
   });
 
   useEffect(() => {
-    form.setValues(formData);
-  }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
+    form.setValues(initialValues);
+  }, [initialValues]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isSaveDisabled =
-    JSON.stringify(form.values) === JSON.stringify(formData);
+  const fieldIds = useMemo(() => fields.map((f) => f.id), [fields]);
+  const isSaveDisabled = valuesEqual(form.values, formData, fieldIds);
 
   useEffect(() => {
     markUnsaved("Personal Info", !isSaveDisabled);
   }, [isSaveDisabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isFormEmpty =
-    formData.name === "" ||
-    formData.email === "" ||
-    formData.taxID === "" ||
-    formData.address.street === "" ||
-    formData.address.city === "" ||
-    formData.address.zip === "";
+  const isFormEmpty = fields.some(
+    (f) => f.required && !(formData[f.id] ?? "").trim(),
+  );
 
   return (
     <Accordion.Item key={"Personal Info"} value={"Personal Info"}>
@@ -77,61 +89,16 @@ export default function PersonalInfoAccordian() {
       <Accordion.Panel>
         <form onSubmit={form.onSubmit(() => onFromSubmit(form, setFormData))}>
           <Stack>
-            <TextInput
-              label="Name"
-              placeholder="Name"
-              withAsterisk
-              key={form.key("name")}
-              {...form.getInputProps("name")}
-            />
-            <TextInput
-              mt="md"
-              label="Email"
-              placeholder="Email"
-              withAsterisk
-              key={form.key("email")}
-              {...form.getInputProps("email")}
-            />
-
-            <TextInput
-              mt="md"
-              label="Tax ID"
-              placeholder="Your CNIC or Tax ID"
-              withAsterisk
-              key={form.key("taxID")}
-              {...form.getInputProps("taxID")}
-            />
-
-            <TextInput
-              mt="md"
-              label="Address"
-              placeholder="Address"
-              withAsterisk
-              key={form.key("address.street")}
-              {...form.getInputProps("address.street")}
-            />
-
-            <Group grow>
-              <Select
-                mt="md"
-                label="City"
-                placeholder="City"
-                withAsterisk
-                key={form.key("address.city")}
-                data={["Karachi", "Lahore"]}
-                searchable
-                {...form.getInputProps("address.city")}
-              />
+            {fields.map((f, idx) => (
               <TextInput
-                mt="md"
-                label="Zip"
-                placeholder="Zip"
-                withAsterisk
-                key={form.key("address.zip")}
-                {...form.getInputProps("address.zip")}
+                key={f.id}
+                mt={idx === 0 ? undefined : "md"}
+                label={f.label || "Field"}
+                placeholder={f.placeholder || f.label}
+                withAsterisk={f.required}
+                {...form.getInputProps(f.id)}
               />
-            </Group>
-
+            ))}
             <Group align="center" mt="xl" grow>
               <Button type="submit" disabled={isSaveDisabled}>
                 Save

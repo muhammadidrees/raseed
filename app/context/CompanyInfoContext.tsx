@@ -9,6 +9,8 @@ import React, {
 } from "react";
 
 import { CompanyInfo } from "../types";
+import { storageKey } from "@/lib/storage-keys";
+import { useInvoiceShell } from "./InvoiceShellContext";
 
 interface CompanyInfoFormContextType {
   companyFormData: CompanyInfo;
@@ -29,30 +31,7 @@ export const useCompanyFormContext = () => {
   return context;
 };
 
-// Check if we are running in the browser
 const isBrowser = typeof window !== "undefined";
-
-const loadInitialState = (): CompanyInfo => {
-  if (isBrowser) {
-    const storedData = localStorage.getItem("companyFormData");
-    if (storedData) {
-      try {
-        return JSON.parse(storedData);
-      } catch (error) {
-        console.error("Failed to parse stored company form data:", error);
-      }
-    }
-  }
-
-  return {
-    name: "",
-    address: {
-      street: "",
-      city: "",
-      zip: "",
-    },
-  };
-};
 
 const defaultState: CompanyInfo = {
   name: "",
@@ -63,41 +42,54 @@ const defaultState: CompanyInfo = {
   },
 };
 
-const makulaState: CompanyInfo = {
-  name: "Makula Technology GmbH",
-  address: {
-    street: "c/o Mindspace Münzstr. 12",
-    city: "Germany",
-    zip: "10178 Berlin",
-  },
-};
-
 export const CompanyFormProvider = ({
   children,
-  company,
+  serverCompanyDefaults,
 }: {
   children: ReactNode;
-  company?: string;
+  /** Payee defaults from published Supabase template (optional) */
+  serverCompanyDefaults?: CompanyInfo;
 }) => {
-  const [formData, setFormData] = useState<CompanyInfo>(defaultState);
+  const { storageNamespace } = useInvoiceShell();
+  // On tenant routes (storageNamespace set), payee company is server-driven and
+  // never persisted to localStorage; on the legacy "/" route we keep the old
+  // localStorage-backed editable behavior.
+  const isServerDriven = Boolean(storageNamespace);
+  const [formData, setFormData] = useState<CompanyInfo>(
+    isServerDriven && serverCompanyDefaults
+      ? serverCompanyDefaults
+      : defaultState,
+  );
+  const [isLoaded, setIsLoaded] = useState(isServerDriven);
 
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load the correct data after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
-    if (company?.toLowerCase() === "makula") {
-      setFormData(makulaState);
-    } else {
-      setFormData(loadInitialState());
+    if (isServerDriven) {
+      setFormData(serverCompanyDefaults ?? defaultState);
+      setIsLoaded(true);
+      return;
     }
+    const lsKey = storageKey("companyFormData", storageNamespace);
+    if (isBrowser) {
+      const stored = localStorage.getItem(lsKey);
+      if (stored) {
+        try {
+          setFormData(JSON.parse(stored) as CompanyInfo);
+          setIsLoaded(true);
+          return;
+        } catch {
+          console.error("Failed to parse stored company form data");
+        }
+      }
+    }
+    setFormData(defaultState);
     setIsLoaded(true);
-  }, [company]);
+  }, [storageNamespace, serverCompanyDefaults, isServerDriven]);
 
-  // Save formData to localStorage only after real data has loaded and no company prop
   useEffect(() => {
-    if (!isLoaded || !isBrowser || company) return;
-    localStorage.setItem("companyFormData", JSON.stringify(formData));
-  }, [formData, isLoaded, company]);
+    if (!isLoaded || !isBrowser || isServerDriven) return;
+    const lsKey = storageKey("companyFormData", storageNamespace);
+    localStorage.setItem(lsKey, JSON.stringify(formData));
+  }, [formData, isLoaded, storageNamespace, isServerDriven]);
 
   return (
     <CompanyInfoFormContext.Provider

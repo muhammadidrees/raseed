@@ -1,3 +1,5 @@
+"use client";
+
 import React, {
   createContext,
   useContext,
@@ -6,6 +8,8 @@ import React, {
   ReactNode,
 } from "react";
 import { BankInfo } from "../types";
+import { storageKey } from "@/lib/storage-keys";
+import { useInvoiceShell } from "./InvoiceShellContext";
 
 interface BankInfoFormContextType {
   bankFromData: BankInfo;
@@ -26,54 +30,55 @@ export const useBankFormContext = () => {
   return context;
 };
 
-// Check if we are running in the browser
 const isBrowser = typeof window !== "undefined";
 
-// Load initial state from localStorage
-const loadInitialState = (): BankInfo => {
-  if (isBrowser) {
-    const storedData = localStorage.getItem("bankFormData");
-    if (storedData) {
-      try {
-        return JSON.parse(storedData);
-      } catch (error) {
-        console.error("Failed to parse stored bank form data:", error);
-      }
-    }
-  }
+const defaultState: BankInfo = {};
 
-  return {
-    name: "",
-    accountTitle: "",
-    iban: "",
-    bic: "",
-  };
-};
-
-const defaultState: BankInfo = {
-  name: "",
-  accountTitle: "",
-  iban: "",
-  bic: "",
-};
-
-export const BankFormProvider = ({ children }: { children: ReactNode }) => {
+export const BankFormProvider = ({
+  children,
+  serverBankDefaults,
+}: {
+  children: ReactNode;
+  /**
+   * Optional pre-fill if the org template happens to ship default bank info.
+   * Bank info on tenant routes is still **contractor-driven** (the contractor
+   * gets paid into their own account) — the server defaults only seed the
+   * form on first load when localStorage is empty. The contractor can fully
+   * edit and persist over them.
+   */
+  serverBankDefaults?: BankInfo;
+}) => {
+  const { storageNamespace } = useInvoiceShell();
   const [formData, setFormData] = useState<BankInfo>(defaultState);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
-    setFormData(loadInitialState());
-    setIsLoaded(true);
-  }, []);
-
-  // Save formData to localStorage only after real data has loaded
-  useEffect(() => {
-    if (!isLoaded) return;
+    const lsKey = storageKey("bankFormData", storageNamespace);
     if (isBrowser) {
-      localStorage.setItem("bankFormData", JSON.stringify(formData));
+      const stored = localStorage.getItem(lsKey);
+      if (stored) {
+        try {
+          setFormData(JSON.parse(stored) as BankInfo);
+          setIsLoaded(true);
+          return;
+        } catch {
+          console.error("Failed to parse stored bank form data");
+        }
+      }
     }
-  }, [formData, isLoaded]);
+    if (serverBankDefaults) {
+      setFormData(serverBankDefaults);
+    } else {
+      setFormData(defaultState);
+    }
+    setIsLoaded(true);
+  }, [storageNamespace, serverBankDefaults]);
+
+  useEffect(() => {
+    if (!isLoaded || !isBrowser) return;
+    const lsKey = storageKey("bankFormData", storageNamespace);
+    localStorage.setItem(lsKey, JSON.stringify(formData));
+  }, [formData, isLoaded, storageNamespace]);
 
   return (
     <BankInfoFormContext.Provider

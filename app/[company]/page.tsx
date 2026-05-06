@@ -1,27 +1,29 @@
-import "@mantine/core/styles.css";
+import { notFound } from "next/navigation";
+import { fetchPublishedTemplateBySlug } from "@/lib/supabase/fetch-published-template";
+import { CompanyClientPage } from "./CompanyClientPage";
+import { EnvMissingBanner } from "./EnvMissingBanner";
 
-import { createTheme, MantineProvider } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
-import App from "../app";
-import { use } from "react";
+export const dynamic = "force-dynamic";
 
-const theme = createTheme({});
-
-export function generateStaticParams() {
-  return [{ company: "makula" }];
-}
-
-export default function CompanyPage({
+export default async function CompanyPage({
   params,
 }: {
   params: Promise<{ company: string }>;
 }) {
-  const { company } = use(params);
+  const { company } = await params;
 
-  return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Notifications />
-      <App company={company} />
-    </MantineProvider>
-  );
+  const hasSupabaseEnv =
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+  if (!hasSupabaseEnv) {
+    return <EnvMissingBanner slug={company} />;
+  }
+
+  const template = await fetchPublishedTemplateBySlug(company);
+  if (!template) {
+    notFound();
+  }
+
+  return <CompanyClientPage template={template} />;
 }

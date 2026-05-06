@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import React, {
   createContext,
   useContext,
@@ -11,6 +9,8 @@ import React, {
 } from "react";
 import { InvoiceData } from "../types";
 import { randomId } from "@mantine/hooks";
+import { storageKey } from "@/lib/storage-keys";
+import { useInvoiceShell } from "./InvoiceShellContext";
 
 interface InvoiceDataContextProps {
   invoiceFromData: InvoiceData;
@@ -31,26 +31,25 @@ export const useInvoiceDataContext = (): InvoiceDataContextProps => {
   return context;
 };
 
-// Check if we are running in the browser
 const isBrowser = typeof window !== "undefined";
 
-const loadInitialState = (): InvoiceData => {
+const loadInitialState = (namespace?: string): InvoiceData => {
   try {
     if (isBrowser) {
-      const storedData = localStorage.getItem("invoiceData");
+      const storedData = localStorage.getItem(
+        storageKey("invoiceData", namespace),
+      );
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         parsedData.date = new Date();
         parsedData.dueTerms = parsedData.dueTerms || "due_on_receipt";
         parsedData.customDueDays = parsedData.customDueDays || undefined;
-        // Period is never persisted — always starts blank
         parsedData.periodStart = undefined;
         parsedData.periodEnd = undefined;
         return parsedData;
       }
     }
 
-    // Default state
     return {
       date: new Date(),
       dueTerms: "due_on_receipt",
@@ -87,7 +86,7 @@ const loadInitialState = (): InvoiceData => {
 };
 
 const defaultState: InvoiceData = {
-  date: new Date(0), // stable placeholder; real date set after hydration from localStorage or current date
+  date: new Date(0),
   dueTerms: "due_on_receipt",
   customDueDays: undefined,
   periodStart: undefined,
@@ -103,16 +102,14 @@ const defaultState: InvoiceData = {
 };
 
 export const InvoiceDataProvider = ({ children }: { children: ReactNode }) => {
+  const { storageNamespace } = useInvoiceShell();
   const [formData, setFormData] = useState<InvoiceData>(defaultState);
-  // isLoaded uses state (not a ref) so it resets on StrictMode remount,
-  // preventing the save effect from firing before the load effect runs.
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
-    setFormData(loadInitialState());
+    setFormData(loadInitialState(storageNamespace));
     setIsLoaded(true);
-  }, []);
+  }, [storageNamespace]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -121,12 +118,14 @@ export const InvoiceDataProvider = ({ children }: { children: ReactNode }) => {
         date: null,
         dueTerms: formData.dueTerms,
         customDueDays: formData.customDueDays,
-        // periodStart / periodEnd are intentionally not persisted
         items: formData.items,
       };
-      localStorage.setItem("invoiceData", JSON.stringify(dataToStore));
+      localStorage.setItem(
+        storageKey("invoiceData", storageNamespace),
+        JSON.stringify(dataToStore),
+      );
     }
-  }, [formData, isLoaded]);
+  }, [formData, isLoaded, storageNamespace]);
 
   return (
     <InvoiceDataContext.Provider

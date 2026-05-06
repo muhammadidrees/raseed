@@ -10,6 +10,10 @@ import { InvoiceDataProvider } from "./context/InvoiceDataContext";
 import { Suspense } from "react";
 import { ExportModal } from "./components/ExportModal";
 import { UnsavedChangesProvider } from "./context/UnsavedChangesContext";
+import { InvoiceShellProvider } from "./context/InvoiceShellContext";
+import { ContractorPrivacyFooter } from "./components/ContractorPrivacyFooter";
+import { AdminJumpPill } from "./components/AdminJumpPill";
+import type { InvoiceTemplateConfig } from "@/lib/invoice-template";
 
 function Main() {
   return (
@@ -24,30 +28,60 @@ function Main() {
   );
 }
 
-export default function App({ company }: { company?: string }) {
+export default function App({
+  storageNamespace,
+  exportFileLabel = "Invoice",
+  organizationDisplayName = "",
+  templateConfig,
+}: {
+  storageNamespace?: string;
+  exportFileLabel?: string;
+  organizationDisplayName?: string;
+  /** Resolved template config (omitted on legacy `/` route -> shell falls back to defaults). */
+  templateConfig?: InvoiceTemplateConfig;
+}) {
   return (
     <Suspense>
-      <UnsavedChangesProvider>
-        <InvoiceDataProvider>
-          <PersonalFormProvider>
-            <CompanyFormProvider company={company}>
-              <BankFormProvider>
-                <AppShell padding="md" header={{ height: 60 }}>
-                  <AppShell.Header>
-                    <Group h="100%" px="md" justify="space-between">
-                      <Title order={3}>RASEED</Title>
-                      <ExportModal />
-                    </Group>
-                  </AppShell.Header>
-                  <AppShell.Main>
-                    <Main />
-                  </AppShell.Main>
-                </AppShell>
-              </BankFormProvider>
-            </CompanyFormProvider>
-          </PersonalFormProvider>
-        </InvoiceDataProvider>
-      </UnsavedChangesProvider>
+      <InvoiceShellProvider
+        storageNamespace={storageNamespace}
+        exportFileLabel={exportFileLabel}
+        organizationDisplayName={organizationDisplayName}
+        templateConfig={templateConfig}
+      >
+        <UnsavedChangesProvider>
+          <InvoiceDataProvider>
+            <PersonalFormProvider>
+              <CompanyFormProvider
+                serverCompanyDefaults={templateConfig?.company}
+              >
+                <BankFormProvider serverBankDefaults={templateConfig?.bank}>
+                  <AppShell
+                    padding="md"
+                    header={{ height: 60 }}
+                    footer={{ height: 36 }}
+                  >
+                    <AppShell.Header>
+                      <Group h="100%" px="md" justify="space-between">
+                        <Group gap="md">
+                          <Title order={3}>RASEED</Title>
+                          <AdminJumpPill />
+                        </Group>
+                        <ExportModal />
+                      </Group>
+                    </AppShell.Header>
+                    <AppShell.Main>
+                      <Main />
+                    </AppShell.Main>
+                    <AppShell.Footer>
+                      <ContractorPrivacyFooter />
+                    </AppShell.Footer>
+                  </AppShell>
+                </BankFormProvider>
+              </CompanyFormProvider>
+            </PersonalFormProvider>
+          </InvoiceDataProvider>
+        </UnsavedChangesProvider>
+      </InvoiceShellProvider>
     </Suspense>
   );
 }

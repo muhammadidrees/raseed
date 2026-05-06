@@ -1,3 +1,5 @@
+"use client";
+
 import React, {
   createContext,
   useContext,
@@ -5,7 +7,9 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { PersonalInfo } from "../types";
+import { migrateStoredPersonalInfo, type PersonalInfo } from "../types";
+import { storageKey } from "@/lib/storage-keys";
+import { useInvoiceShell } from "./InvoiceShellContext";
 
 interface PersonalInfoFormContextType {
   personalFormData: PersonalInfo;
@@ -26,62 +30,39 @@ export const usePersonalFormContext = () => {
   return context;
 };
 
-// Check if we are running in the browser
 const isBrowser = typeof window !== "undefined";
 
-// Load initial state from localStorage
-const loadInitialState = (): PersonalInfo => {
-  if (isBrowser) {
-    const storedData = localStorage.getItem("personalFormData");
-    if (storedData) {
-      try {
-        return JSON.parse(storedData);
-      } catch (error) {
-        console.error("Failed to parse stored personal form data:", error);
-      }
-    }
-  }
-
-  return {
-    name: "",
-    email: "",
-    taxID: "",
-    address: {
-      street: "",
-      city: "",
-      zip: "",
-    },
-  };
-};
-
-const defaultState: PersonalInfo = {
-  name: "",
-  email: "",
-  taxID: "",
-  address: {
-    street: "",
-    city: "",
-    zip: "",
-  },
-};
+const defaultState: PersonalInfo = {};
 
 export const PersonalFormProvider = ({ children }: { children: ReactNode }) => {
+  const { storageNamespace } = useInvoiceShell();
   const [formData, setFormData] = useState<PersonalInfo>(defaultState);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
-    setFormData(loadInitialState());
-    setIsLoaded(true);
-  }, []);
-
-  // Save formData to localStorage only after real data has loaded
-  useEffect(() => {
-    if (!isLoaded) return;
+    const lsKey = storageKey("personalFormData", storageNamespace);
     if (isBrowser) {
-      localStorage.setItem("personalFormData", JSON.stringify(formData));
+      const stored = localStorage.getItem(lsKey);
+      if (stored) {
+        try {
+          const parsed: unknown = JSON.parse(stored);
+          setFormData(migrateStoredPersonalInfo(parsed));
+          setIsLoaded(true);
+          return;
+        } catch {
+          console.error("Failed to parse stored personal form data");
+        }
+      }
     }
-  }, [formData, isLoaded]);
+    setFormData(defaultState);
+    setIsLoaded(true);
+  }, [storageNamespace]);
+
+  useEffect(() => {
+    if (!isLoaded || !isBrowser) return;
+    const lsKey = storageKey("personalFormData", storageNamespace);
+    localStorage.setItem(lsKey, JSON.stringify(formData));
+  }, [formData, isLoaded, storageNamespace]);
 
   return (
     <PersonalInfoFormContext.Provider

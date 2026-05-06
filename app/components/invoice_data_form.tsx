@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import {
   TextInput,
@@ -21,38 +21,31 @@ import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext";
-import {
-  IconTrash,
-  IconCurrencyEuro,
-  IconGift,
-  IconCheck,
-} from "@tabler/icons-react";
+import { useInvoiceShell } from "../context/InvoiceShellContext";
+import { IconTrash, IconGift, IconCheck } from "@tabler/icons-react";
 import { randomId } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
+import type { DueTermsPreset } from "@/lib/invoice-template";
 
-const TERM_DESCRIPTIONS: Record<string, string> = {
-  due_on_receipt: "Payment expected immediately upon receipt",
-  net_15: "Due 15 days after invoice date",
-  net_30: "Due 30 days after invoice date — standard business term",
-  net_60: "Due 60 days after invoice date — common for large contracts",
-  custom: "Set your own number of days",
-};
-
-const TERM_DAYS: Record<string, number> = {
-  due_on_receipt: 0,
-  net_15: 15,
-  net_30: 30,
-  net_60: 60,
-};
+function CurrencyIcon({ symbol }: { symbol: string }) {
+  return (
+    <Text size="sm" c="dimmed" component="span">
+      {symbol}
+    </Text>
+  );
+}
 
 function computeDueDate(
   invoiceDate: Date,
   dueTerms: string,
-  customDueDays?: number,
+  customDueDays: number | undefined,
+  presets: DueTermsPreset[],
 ): Date {
   const date = new Date(invoiceDate);
   const days =
-    dueTerms === "custom" ? (customDueDays ?? 0) : (TERM_DAYS[dueTerms] ?? 0);
+    dueTerms === "custom"
+      ? (customDueDays ?? 0)
+      : (presets.find((p) => p.id === dueTerms)?.days ?? 0);
   date.setDate(date.getDate() + days);
   return date;
 }
@@ -93,6 +86,32 @@ function hasPersistableChanges(
 export default function InvoiceDataForm() {
   const { invoiceFromData: formData, setFormData } = useInvoiceDataContext();
   const { markUnsaved } = useUnsavedChanges();
+  const { templateConfig, storageNamespace } = useInvoiceShell();
+  const currency = templateConfig.currency;
+  const dueTermsPresets = templateConfig.dueTermsPresets;
+  // Bonus Payout is a Makula-specific helper; show only on the legacy `/`
+  // route or on /makula. New tenants don't see it.
+  const showBonusPayout =
+    !storageNamespace || storageNamespace === "makula";
+
+  const dueTermsSelectData = useMemo(
+    () => [
+      ...dueTermsPresets.map((p) => ({ value: p.id, label: p.label })),
+      { value: "custom", label: "Custom" },
+    ],
+    [dueTermsPresets],
+  );
+  const termDescriptions = useMemo(() => {
+    const map: Record<string, string> = { custom: "Set your own number of days" };
+    for (const p of dueTermsPresets) {
+      if (p.days === 0) {
+        map[p.id] = "Payment expected immediately upon receipt";
+      } else {
+        map[p.id] = `Due ${p.days} days after invoice date`;
+      }
+    }
+    return map;
+  }, [dueTermsPresets]);
 
   // Salary is stored in its own localStorage key — separate from personal info
   const [monthlySalary, setMonthlySalary] = useState<number | string>("");
@@ -318,7 +337,7 @@ export default function InvoiceDataForm() {
           key={form.key(`items.${index}.price`)}
           {...form.getInputProps(`items.${index}.price`)}
           hideControls
-          rightSection={<IconCurrencyEuro />}
+          rightSection={<CurrencyIcon symbol={currency.symbol} />}
         />
 
         <ActionIcon
@@ -420,16 +439,18 @@ export default function InvoiceDataForm() {
                       value={monthlySalary}
                       onChange={setMonthlySalary}
                       hideControls
-                      rightSection={<IconCurrencyEuro size="0.8rem" />}
+                      rightSection={<CurrencyIcon symbol={currency.symbol} />}
                       mb="xs"
                     />
                     {proRatedAmount !== null ? (
                       <>
                         <Text size="xs" c="dimmed" mb="xs">
-                          (€{Number(monthlySalary).toLocaleString()} ÷{" "}
+                          ({currency.symbol}
+                          {Number(monthlySalary).toLocaleString()} ÷{" "}
                           {daysInMonth} days) × {intervalDays} days ={" "}
                           <Text span fw={600}>
-                            €{proRatedAmount.toFixed(2)}
+                            {currency.symbol}
+                            {proRatedAmount.toFixed(2)}
                           </Text>
                         </Text>
                         <Button
@@ -463,20 +484,14 @@ export default function InvoiceDataForm() {
           placeholder="Select payment terms"
           description="When payment is expected"
           withAsterisk
-          data={[
-            { value: "due_on_receipt", label: "Due on Receipt" },
-            { value: "net_15", label: "Net 15" },
-            { value: "net_30", label: "Net 30" },
-            { value: "net_60", label: "Net 60" },
-            { value: "custom", label: "Custom" },
-          ]}
+          data={dueTermsSelectData}
           renderOption={({ option }) => (
             <Stack gap={1} py={2}>
               <Text size="sm" fw={500}>
                 {option.label}
               </Text>
               <Text size="xs" c="dimmed">
-                {TERM_DESCRIPTIONS[option.value]}
+                {termDescriptions[option.value] ?? ""}
               </Text>
             </Stack>
           )}
@@ -509,6 +524,7 @@ export default function InvoiceDataForm() {
                 currentValues.date ?? new Date(),
                 currentValues.dueTerms,
                 currentValues.customDueDays,
+                dueTermsPresets,
               ).toLocaleDateString("default", {
                 day: "numeric",
                 month: "long",
@@ -546,24 +562,26 @@ export default function InvoiceDataForm() {
           >
             Add item
           </Button>
-          <Button
-            variant="light"
-            color="violet"
-            leftSection={<IconGift size="1rem" />}
-            onClick={() => {
-              if (!monthlySalary) {
-                const firstItem = form.getValues().items[0];
-                if (firstItem?.price) setMonthlySalary(firstItem.price);
-              }
-              setBonusModalOpen(true);
-            }}
-          >
-            Add Bonus Payout
-          </Button>
+          {showBonusPayout ? (
+            <Button
+              variant="light"
+              color="violet"
+              leftSection={<IconGift size="1rem" />}
+              onClick={() => {
+                if (!monthlySalary) {
+                  const firstItem = form.getValues().items[0];
+                  if (firstItem?.price) setMonthlySalary(firstItem.price);
+                }
+                setBonusModalOpen(true);
+              }}
+            >
+              Add Bonus Payout
+            </Button>
+          ) : null}
         </Group>
 
         <Modal
-          opened={bonusModalOpen}
+          opened={showBonusPayout && bonusModalOpen}
           onClose={() => setBonusModalOpen(false)}
           title="Bonus Payout"
           centered
@@ -576,7 +594,7 @@ export default function InvoiceDataForm() {
               hideControls
               value={monthlySalary}
               onChange={setMonthlySalary}
-              rightSection={<IconCurrencyEuro size="1rem" />}
+              rightSection={<CurrencyIcon symbol={currency.symbol} />}
             />
             <Group grow>
               <NumberInput
@@ -631,12 +649,15 @@ export default function InvoiceDataForm() {
                   {amount ? (
                     <>
                       <Text size="xs" c="dimmed" mt={4}>
-                        (€{salary} × {pct}%) ÷ {months}{" "}
-                        {months === 1 ? "month" : "months"} = €
+                        ({currency.symbol}
+                        {salary} × {pct}%) ÷ {months}{" "}
+                        {months === 1 ? "month" : "months"} ={" "}
+                        {currency.symbol}
                         {amount.toFixed(2)}
                       </Text>
                       <Text size="sm" c="violet.5" fw={600} mt={2}>
-                        €{amount.toFixed(2)}
+                        {currency.symbol}
+                        {amount.toFixed(2)}
                       </Text>
                     </>
                   ) : (

@@ -9,6 +9,13 @@ import { BankInfo, CompanyInfo, InvoiceData, PersonalInfo } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { useEffect, useState } from "react";
 import { useBankFormContext } from "../context/BankInfoContext";
+import { useInvoiceShell } from "../context/InvoiceShellContext";
+import {
+  formatCurrencyAmount,
+  formatTemplateDate,
+  generateInvoiceNumber,
+  type InvoiceTemplateConfig,
+} from "@/lib/invoice-template";
 
 const PDFViewer = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFViewer),
@@ -37,7 +44,7 @@ const styles = StyleSheet.create({
   },
   column: {
     flex: 1,
-    marginRight: 10, // Add spacing between columns
+    marginRight: 10,
   },
   logo: {
     fontSize: 20,
@@ -51,23 +58,23 @@ const styles = StyleSheet.create({
   invoiceDetails: {
     textAlign: "right",
     fontSize: 11,
-    width: "38%", // Restrict the width to less than half the page
-    marginLeft: "auto", // Push the section to the right corner
-    marginBottom: 10, // Add some space below
+    width: "38%",
+    marginLeft: "auto",
+    marginBottom: 10,
   },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 2, // Minimal vertical spacing
+    marginVertical: 2,
   },
   detailLabel: {
     fontWeight: "bold",
     flex: 1,
-    textAlign: "left", // Align label to the left within the row
+    textAlign: "left",
   },
   detailValue: {
     flex: 2,
-    textAlign: "right", // Align value to the right within the row
+    textAlign: "right",
   },
   section: {
     marginBottom: 20,
@@ -84,8 +91,8 @@ const styles = StyleSheet.create({
   address: {
     marginBottom: 4,
     fontSize: 11,
-    width: "80%", // Set a fixed width
-    wordWrap: "break-word", // Allow text to wrap within the fixed width
+    width: "80%",
+    wordWrap: "break-word",
   },
   table: {
     width: "100%",
@@ -140,32 +147,32 @@ const styles = StyleSheet.create({
   },
   paymentDetails: {
     position: "absolute",
-    bottom: 60, // Adjust this value as needed to position above footer
+    bottom: 60,
     left: 40,
     right: 40,
     borderRadius: 5,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: "#f9f9f9", // Subtle light background
+    backgroundColor: "#f9f9f9",
   },
   paymentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 2, // Reduced vertical spacing between rows
+    marginVertical: 2,
   },
   paymentLabel: {
     fontWeight: "bold",
-    flex: 1, // Label takes 1 unit of space
-    textAlign: "left", // Ensure labels are left-aligned
+    flex: 1,
+    textAlign: "left",
   },
   paymentValue: {
-    flex: 2, // Value takes 2 units of space
-    textAlign: "right", // Ensure values are right-aligned
+    flex: 2,
+    textAlign: "right",
   },
   paymentTitle: {
     fontSize: 14,
     fontWeight: "bold",
-    marginBottom: 8, // Reduced margin for a tighter feel
+    marginBottom: 8,
   },
   footer: {
     position: "absolute",
@@ -183,106 +190,75 @@ export function MyDocument({
   personalFormData,
   invoiceFromData,
   bankFormData,
+  templateConfig,
 }: {
   companyFormData: CompanyInfo;
   personalFormData: PersonalInfo;
   invoiceFromData: InvoiceData;
   bankFormData: BankInfo;
+  templateConfig: InvoiceTemplateConfig;
 }) {
-  // Helper function to format dates
-  const formatDate = (date: Date) => {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+  const { currency, invoiceNumberScheme, taxRate, taxLabel, dateFormat } =
+    templateConfig;
 
-  // Calculate due date based on payment terms
+  const formatDate = (date: Date) => formatTemplateDate(date, dateFormat);
+  const formatAmount = (n: number) => formatCurrencyAmount(n, currency);
+
   const calculateDueDate = (
     invoiceDate: Date,
     dueTerms: string,
     customDays?: number,
   ): Date => {
     const dueDate = new Date(invoiceDate);
-
-    switch (dueTerms) {
-      case "due_on_receipt":
-        return dueDate;
-      case "net_15":
-        dueDate.setDate(dueDate.getDate() + 15);
-        return dueDate;
-      case "net_30":
-        dueDate.setDate(dueDate.getDate() + 30);
-        return dueDate;
-      case "net_60":
-        dueDate.setDate(dueDate.getDate() + 60);
-        return dueDate;
-      case "custom":
-        if (customDays) {
-          dueDate.setDate(dueDate.getDate() + customDays);
-        }
-        return dueDate;
-      default:
-        return dueDate;
+    if (dueTerms === "custom") {
+      if (customDays) dueDate.setDate(dueDate.getDate() + customDays);
+      return dueDate;
     }
+    const preset = templateConfig.dueTermsPresets.find((p) => p.id === dueTerms);
+    if (preset) {
+      dueDate.setDate(dueDate.getDate() + preset.days);
+    }
+    return dueDate;
   };
 
-  // Get payment terms label for display
   const getPaymentTermsLabel = (
     dueTerms: string,
     customDays?: number,
   ): string => {
-    switch (dueTerms) {
-      case "due_on_receipt":
-        return "Due on Receipt";
-      case "net_15":
-        return "Net 15";
-      case "net_30":
-        return "Net 30";
-      case "net_60":
-        return "Net 60";
-      case "custom":
-        return customDays ? `Net ${customDays}` : "Custom";
-      default:
-        return "Due on Receipt";
-    }
+    if (dueTerms === "custom") return customDays ? `Net ${customDays}` : "Custom";
+    const preset = templateConfig.dueTermsPresets.find((p) => p.id === dueTerms);
+    return preset?.label ?? "Due on Receipt";
   };
 
-  // Calculate invoice number based on month/year
-  const generateInvoiceNumber = (date: Date) => {
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = String(date.getFullYear()).slice(-2); // Last two digits of the year
-    return `00${month}${year}`;
-  };
-
-  // Generate the invoice period
-  const generateInvoicePeriod = (date: Date) => {
-    if (invoiceFromData.periodStart && invoiceFromData.periodEnd) {
-      return `${formatDate(invoiceFromData.periodStart)} - ${formatDate(invoiceFromData.periodEnd)}`;
-    }
-    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    return `${formatDate(startOfMonth)} - ${formatDate(endOfMonth)}`;
-  };
-
-  // Calculate Subtotal and Total
   const subtotal = invoiceFromData.items.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0,
   );
-  const taxRate = 0; // Update as necessary
   const tax = subtotal * (taxRate / 100);
-  const total = (subtotal + tax) * 1.0;
+  const total = subtotal + tax;
+
+  // Footer "due within X days" copy
+  const dueTermsCopy = (() => {
+    const t = invoiceFromData.dueTerms;
+    if (t === "custom") {
+      return invoiceFromData.customDueDays
+        ? `due within ${invoiceFromData.customDueDays} days of invoice date`
+        : "due as agreed";
+    }
+    const preset = templateConfig.dueTermsPresets.find((p) => p.id === t);
+    if (!preset) return "due as agreed";
+    if (preset.days === 0) return "due upon receipt of this invoice";
+    return `due within ${preset.days} days of invoice date`;
+  })();
 
   return (
     <Document title="Invoice">
       <Page size="A4" style={styles.page}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.logo}>INVOICE</Text>
             <Text style={styles.invoiceNumber}>
-              #{generateInvoiceNumber(invoiceFromData.date)}
+              #{generateInvoiceNumber(invoiceFromData.date, invoiceNumberScheme)}
             </Text>
           </View>
           <View style={styles.invoiceDetails}>
@@ -307,7 +283,26 @@ export function MyDocument({
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Period:</Text>
               <Text style={styles.detailValue}>
-                {generateInvoicePeriod(invoiceFromData.date)}
+                {(() => {
+                  const date = invoiceFromData.date;
+                  if (
+                    invoiceFromData.periodStart &&
+                    invoiceFromData.periodEnd
+                  ) {
+                    return `${formatDate(invoiceFromData.periodStart)} - ${formatDate(invoiceFromData.periodEnd)}`;
+                  }
+                  const startOfMonth = new Date(
+                    date.getFullYear(),
+                    date.getMonth(),
+                    1,
+                  );
+                  const endOfMonth = new Date(
+                    date.getFullYear(),
+                    date.getMonth() + 1,
+                    0,
+                  );
+                  return `${formatDate(startOfMonth)} - ${formatDate(endOfMonth)}`;
+                })()}
               </Text>
             </View>
             <View style={styles.detailRow}>
@@ -331,32 +326,37 @@ export function MyDocument({
             <Text style={styles.text}>
               {companyFormData.address.zip}, {companyFormData.address.city}
             </Text>
+            {templateConfig.businessEmail && templateConfig.showBusinessEmail ? (
+              <Text style={styles.text}>{templateConfig.businessEmail}</Text>
+            ) : null}
           </View>
           <View style={styles.column}>
             <Text style={styles.title}>From:</Text>
-            <Text style={styles.text}>{personalFormData.name}</Text>
-            <Text style={styles.text}>Tax# {personalFormData.taxID}</Text>
-            <Text style={styles.text}>{personalFormData.email}</Text>
-            <Text style={styles.address}>
-              {personalFormData.address.street}
-            </Text>
-            <Text style={styles.text}>
-              {personalFormData.address.city}, {personalFormData.address.zip}
-            </Text>
+            {templateConfig.contractorFields.map((field) => {
+              const raw = (personalFormData[field.id] ?? "").trim();
+              if (!raw) return null;
+              const text =
+                field.id === "taxID" ? `Tax# ${raw}` : raw;
+              return (
+                <Text key={field.id} style={styles.text}>
+                  {text}
+                </Text>
+              );
+            })}
           </View>
         </View>
 
         {/* Table */}
         <View style={styles.table}>
-          {/* Table Header */}
           <View style={styles.tableHeader}>
             <Text style={styles.tableCellDescription}>Description</Text>
-            <Text style={styles.tableCell}>Rate (€)</Text>
+            <Text style={styles.tableCell}>Rate ({currency.symbol})</Text>
             <Text style={styles.tableCell}>Qty</Text>
-            <Text style={styles.tableCellLineTotal}>Line Total (€)</Text>
+            <Text style={styles.tableCellLineTotal}>
+              Line Total ({currency.symbol})
+            </Text>
           </View>
 
-          {/* Table Rows */}
           {invoiceFromData.items.map((item) => {
             const description = item.isBonusPayout
               ? `Bonus Payout - ${new Date(invoiceFromData.date).toLocaleString("default", { month: "long" })}`
@@ -373,65 +373,50 @@ export function MyDocument({
             );
           })}
 
-          {/* Subtotal and Total Rows */}
           <View style={styles.totalRow}>
             <Text style={styles.tableCellDescription}></Text>
             <Text style={styles.tableCell}></Text>
             <Text style={styles.totalCellLabel}>Subtotal</Text>
-            <Text style={styles.tableCellLineTotal}>
-              {subtotal.toFixed(2)} €
-            </Text>
+            <Text style={styles.tableCellLineTotal}>{formatAmount(subtotal)}</Text>
           </View>
           {taxRate > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.tableCellDescription}></Text>
               <Text style={styles.tableCell}></Text>
-              <Text style={styles.totalCellLabel}>Tax ({taxRate}%)</Text>
-              <Text style={styles.tableCellLineTotal}>{tax.toFixed(2)} €</Text>
+              <Text style={styles.totalCellLabel}>
+                {taxLabel ?? "Tax"} ({taxRate}%)
+              </Text>
+              <Text style={styles.tableCellLineTotal}>{formatAmount(tax)}</Text>
             </View>
           )}
           <View style={styles.totalRow}>
             <Text style={styles.tableCellDescription}></Text>
             <Text style={styles.tableCell}></Text>
             <Text style={styles.totalCellLabel}>Total</Text>
-            <Text style={styles.tableCellLineTotal}>{total.toFixed(2)} €</Text>
+            <Text style={styles.tableCellLineTotal}>{formatAmount(total)}</Text>
           </View>
         </View>
 
-        {/* Payment Details at the Bottom */}
-        <View style={styles.paymentDetails}>
-          <Text style={styles.paymentTitle}>Payment Details:</Text>
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>Bank Name:</Text>
-            <Text style={styles.paymentValue}>{bankFormData.name}</Text>
+        {templateConfig.bankFields.length > 0 ? (
+          <View style={styles.paymentDetails}>
+            <Text style={styles.paymentTitle}>Payment Details:</Text>
+            {templateConfig.bankFields.map((field) => {
+              const value = bankFormData[field.id] ?? "";
+              if (!value && !field.required) return null;
+              return (
+                <View key={field.id} style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>{field.label}:</Text>
+                  <Text style={styles.paymentValue}>{value}</Text>
+                </View>
+              );
+            })}
           </View>
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>Account Title:</Text>
-            <Text style={styles.paymentValue}>{bankFormData.accountTitle}</Text>
-          </View>
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>IBAN:</Text>
-            <Text style={styles.paymentValue}>{bankFormData.iban}</Text>
-          </View>
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>BIC:</Text>
-            <Text style={styles.paymentValue}>{bankFormData.bic}</Text>
-          </View>
-        </View>
+        ) : null}
 
-        {/* Footer */}
         <Text style={styles.footer}>
-          Amount due: {total.toFixed(2)} €{"\n"}
-          Thank you for your business! Payment is{" "}
-          {invoiceFromData.dueTerms === "due_on_receipt"
-            ? "due upon receipt of this invoice"
-            : `due within ${
-                invoiceFromData.dueTerms === "custom" &&
-                invoiceFromData.customDueDays
-                  ? invoiceFromData.customDueDays
-                  : invoiceFromData.dueTerms.replace("net_", "")
-              } days of invoice date`}
-          .
+          Amount due: {formatAmount(total)}
+          {"\n"}
+          Thank you for your business! Payment is {dueTermsCopy}.
         </Text>
       </Page>
     </Document>
@@ -443,6 +428,7 @@ export function PdfView() {
   const { personalFormData } = usePersonalFormContext();
   const { invoiceFromData } = useInvoiceDataContext();
   const { bankFromData } = useBankFormContext();
+  const { templateConfig } = useInvoiceShell();
 
   const [isReady, setIsReady] = useState(false);
 
@@ -462,6 +448,7 @@ export function PdfView() {
           companyFormData={companyFormData}
           invoiceFromData={invoiceFromData}
           bankFormData={bankFromData}
+          templateConfig={templateConfig}
         />
       </PDFViewer>
     </div>
