@@ -346,7 +346,13 @@ export default function AdminTemplatePage() {
                     What contractors will see in their PDF
                   </Text>
                 </Group>
-                <Box style={{ flex: 1, minHeight: 0, background: "#525659" }}>
+                <Box
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    background: "var(--raseed-page-bg)",
+                  }}
+                >
                   <TemplatePdfPreview
                     templateConfig={liveConfig}
                     organizationName={form.values.orgName || org.name}

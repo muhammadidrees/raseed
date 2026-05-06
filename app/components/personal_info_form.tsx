@@ -81,7 +81,9 @@ export default function PersonalInfoAccordian() {
   return (
     <Accordion.Item key={"Personal Info"} value={"Personal Info"}>
       <AccordianControl
-        label={"Personal Info"}
+        label={"From"}
+        sublabel={"Your details"}
+        region="from"
         isFormEmpty={isFormEmpty}
         isFormUnsaved={!isSaveDisabled}
       />

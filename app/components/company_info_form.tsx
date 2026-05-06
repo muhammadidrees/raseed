@@ -58,7 +58,9 @@ export default function CompanyInfoAccordion() {
   return (
     <Accordion.Item key={"Company Info"} value={"Company Info"}>
       <AccordianControl
-        label={"Company Info"}
+        label={"Billed To"}
+        sublabel={"Company you are invoicing"}
+        region="billed-to"
         isFormEmpty={isFormEmpty}
         isFormUnsaved={!isSaveDisabled}
       />

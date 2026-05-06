@@ -91,8 +91,7 @@ export default function InvoiceDataForm() {
   const dueTermsPresets = templateConfig.dueTermsPresets;
   // Bonus Payout is a Makula-specific helper; show only on the legacy `/`
   // route or on /makula. New tenants don't see it.
-  const showBonusPayout =
-    !storageNamespace || storageNamespace === "makula";
+  const showBonusPayout = !storageNamespace || storageNamespace === "makula";
 
   const dueTermsSelectData = useMemo(
     () => [
@@ -102,7 +101,9 @@ export default function InvoiceDataForm() {
     [dueTermsPresets],
   );
   const termDescriptions = useMemo(() => {
-    const map: Record<string, string> = { custom: "Set your own number of days" };
+    const map: Record<string, string> = {
+      custom: "Set your own number of days",
+    };
     for (const p of dueTermsPresets) {
       if (p.days === 0) {
         map[p.id] = "Payment expected immediately upon receipt";
@@ -651,8 +652,7 @@ export default function InvoiceDataForm() {
                       <Text size="xs" c="dimmed" mt={4}>
                         ({currency.symbol}
                         {salary} × {pct}%) ÷ {months}{" "}
-                        {months === 1 ? "month" : "months"} ={" "}
-                        {currency.symbol}
+                        {months === 1 ? "month" : "months"} = {currency.symbol}
                         {amount.toFixed(2)}
                       </Text>
                       <Text size="sm" c="violet.5" fw={600} mt={2}>

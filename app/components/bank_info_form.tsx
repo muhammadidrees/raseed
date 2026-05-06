@@ -78,7 +78,9 @@ export default function BankInfoAccordion() {
   return (
     <Accordion.Item key={"Bank Info"} value={"Bank Info"}>
       <AccordianControl
-        label={"Bank Info"}
+        label={"Payment Details"}
+        sublabel={"Where you get paid"}
+        region="payment"
         isFormEmpty={isFormEmpty}
         isFormUnsaved={!isSaveDisabled}
       />

@@ -7,7 +7,8 @@ import { useCompanyFormContext } from "../context/CompanyInfoContext";
 import { usePersonalFormContext } from "../context/PersonalInfoContext";
 import { BankInfo, CompanyInfo, InvoiceData, PersonalInfo } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useDebouncedValue } from "@mantine/hooks";
 import { useBankFormContext } from "../context/BankInfoContext";
 import { useInvoiceShell } from "../context/InvoiceShellContext";
 import {
@@ -17,12 +18,9 @@ import {
   type InvoiceTemplateConfig,
 } from "@/lib/invoice-template";
 
-const PDFViewer = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFViewer),
-  {
-    ssr: false,
-    loading: () => <p>Loading...</p>,
-  },
+const LivePdfPreview = dynamic(
+  () => import("./LivePdfPreview").then((m) => m.LivePdfPreview),
+  { ssr: false },
 );
 
 const styles = StyleSheet.create({
@@ -214,7 +212,9 @@ export function MyDocument({
       if (customDays) dueDate.setDate(dueDate.getDate() + customDays);
       return dueDate;
     }
-    const preset = templateConfig.dueTermsPresets.find((p) => p.id === dueTerms);
+    const preset = templateConfig.dueTermsPresets.find(
+      (p) => p.id === dueTerms,
+    );
     if (preset) {
       dueDate.setDate(dueDate.getDate() + preset.days);
     }
@@ -225,8 +225,11 @@ export function MyDocument({
     dueTerms: string,
     customDays?: number,
   ): string => {
-    if (dueTerms === "custom") return customDays ? `Net ${customDays}` : "Custom";
-    const preset = templateConfig.dueTermsPresets.find((p) => p.id === dueTerms);
+    if (dueTerms === "custom")
+      return customDays ? `Net ${customDays}` : "Custom";
+    const preset = templateConfig.dueTermsPresets.find(
+      (p) => p.id === dueTerms,
+    );
     return preset?.label ?? "Due on Receipt";
   };
 
@@ -258,7 +261,8 @@ export function MyDocument({
           <View>
             <Text style={styles.logo}>INVOICE</Text>
             <Text style={styles.invoiceNumber}>
-              #{generateInvoiceNumber(invoiceFromData.date, invoiceNumberScheme)}
+              #
+              {generateInvoiceNumber(invoiceFromData.date, invoiceNumberScheme)}
             </Text>
           </View>
           <View style={styles.invoiceDetails}>
@@ -326,7 +330,8 @@ export function MyDocument({
             <Text style={styles.text}>
               {companyFormData.address.zip}, {companyFormData.address.city}
             </Text>
-            {templateConfig.businessEmail && templateConfig.showBusinessEmail ? (
+            {templateConfig.businessEmail &&
+            templateConfig.showBusinessEmail ? (
               <Text style={styles.text}>{templateConfig.businessEmail}</Text>
             ) : null}
           </View>
@@ -335,8 +340,7 @@ export function MyDocument({
             {templateConfig.contractorFields.map((field) => {
               const raw = (personalFormData[field.id] ?? "").trim();
               if (!raw) return null;
-              const text =
-                field.id === "taxID" ? `Tax# ${raw}` : raw;
+              const text = field.id === "taxID" ? `Tax# ${raw}` : raw;
               return (
                 <Text key={field.id} style={styles.text}>
                   {text}
@@ -377,7 +381,9 @@ export function MyDocument({
             <Text style={styles.tableCellDescription}></Text>
             <Text style={styles.tableCell}></Text>
             <Text style={styles.totalCellLabel}>Subtotal</Text>
-            <Text style={styles.tableCellLineTotal}>{formatAmount(subtotal)}</Text>
+            <Text style={styles.tableCellLineTotal}>
+              {formatAmount(subtotal)}
+            </Text>
           </View>
           {taxRate > 0 && (
             <View style={styles.totalRow}>
@@ -430,27 +436,29 @@ export function PdfView() {
   const { bankFromData } = useBankFormContext();
   const { templateConfig } = useInvoiceShell();
 
-  const [isReady, setIsReady] = useState(false);
+  // Debounce form changes so the PDF doesn't recompile on every keystroke.
+  const [dCompany] = useDebouncedValue(companyFormData, 300);
+  const [dPersonal] = useDebouncedValue(personalFormData, 300);
+  const [dInvoice] = useDebouncedValue(invoiceFromData, 300);
+  const [dBank] = useDebouncedValue(bankFromData, 300);
+  const [dTemplate] = useDebouncedValue(templateConfig, 300);
 
-  useEffect(() => {
-    setIsReady(true);
-  }, [invoiceFromData]);
-
-  if (!isReady) {
-    return <div>Loading PDF...</div>;
-  }
+  const document = useMemo(
+    () => (
+      <MyDocument
+        personalFormData={dPersonal}
+        companyFormData={dCompany}
+        invoiceFromData={dInvoice}
+        bankFormData={dBank}
+        templateConfig={dTemplate}
+      />
+    ),
+    [dPersonal, dCompany, dInvoice, dBank, dTemplate],
+  );
 
   return (
     <div style={{ height: "90vh" }}>
-      <PDFViewer style={{ width: "100%", height: "100%" }} showToolbar={false}>
-        <MyDocument
-          personalFormData={personalFormData}
-          companyFormData={companyFormData}
-          invoiceFromData={invoiceFromData}
-          bankFormData={bankFromData}
-          templateConfig={templateConfig}
-        />
-      </PDFViewer>
+      <LivePdfPreview document={document} />
     </div>
   );
 }

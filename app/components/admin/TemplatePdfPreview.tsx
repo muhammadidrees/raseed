@@ -5,9 +5,7 @@ import dynamic from "next/dynamic";
 import { useDebouncedValue } from "@mantine/hooks";
 import { Loader, Stack, Text } from "@mantine/core";
 import { MyDocument } from "../preview";
-import {
-  type InvoiceTemplateConfig,
-} from "@/lib/invoice-template";
+import { type InvoiceTemplateConfig } from "@/lib/invoice-template";
 import type {
   BankInfo,
   CompanyInfo,
@@ -15,13 +13,13 @@ import type {
   PersonalInfo,
 } from "@/app/types";
 
-const PDFViewer = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFViewer),
+const LivePdfPreview = dynamic(
+  () => import("../LivePdfPreview").then((m) => m.LivePdfPreview),
   {
     ssr: false,
     loading: () => (
       <Stack align="center" justify="center" h="100%" gap="xs">
-        <Loader size="sm" />
+        <Loader size="sm" color="brand" />
         <Text size="xs" c="dimmed">
           Loading preview…
         </Text>
@@ -49,8 +47,7 @@ const SAMPLE_BANK_BY_LEGACY_ID: Record<string, string> = {
 function pickPersonal(cfg: InvoiceTemplateConfig): PersonalInfo {
   const out: PersonalInfo = {};
   for (const f of cfg.contractorFields) {
-    out[f.id] =
-      SAMPLE_PERSONAL_BY_ID[f.id] ?? `[Sample ${f.label}]`;
+    out[f.id] = SAMPLE_PERSONAL_BY_ID[f.id] ?? `[Sample ${f.label}]`;
   }
   return out;
 }
@@ -153,17 +150,17 @@ export function TemplatePdfPreview({
   );
 
   return (
-    <PDFViewer
-      style={{ width: "100%", height: "100%", border: "none" }}
-      showToolbar={false}
-    >
-      <MyDocument
-        personalFormData={personal}
-        companyFormData={sampleCompany}
-        invoiceFromData={sampleInvoice}
-        bankFormData={bank}
-        templateConfig={debouncedConfig}
-      />
-    </PDFViewer>
+    <LivePdfPreview
+      ariaLabel="Live template preview"
+      document={
+        <MyDocument
+          personalFormData={personal}
+          companyFormData={sampleCompany}
+          invoiceFromData={sampleInvoice}
+          bankFormData={bank}
+          templateConfig={debouncedConfig}
+        />
+      }
+    />
   );
 }
