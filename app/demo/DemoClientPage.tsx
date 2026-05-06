@@ -3,25 +3,20 @@
 import { useEffect, useState } from "react";
 import {
   Anchor,
+  Badge,
   Button,
-  createTheme,
   Group,
   Loader,
-  MantineProvider,
   Paper,
   Stack,
   Text,
 } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
-import { IconArrowLeft, IconEdit } from "@tabler/icons-react";
+import { IconArrowLeft, IconEdit, IconFlask } from "@tabler/icons-react";
 import Link from "next/link";
 import App from "@/app/app";
-import {
-  loadDemoTemplate,
-} from "@/lib/demo-template";
+import { AppTheme } from "@/app/components/AppTheme";
+import { loadDemoTemplate } from "@/lib/demo-template";
 import type { InvoiceTemplateConfig } from "@/lib/invoice-template";
-
-const theme = createTheme({});
 
 export function DemoClientPage() {
   const [state, setState] = useState<{
@@ -36,17 +31,17 @@ export function DemoClientPage() {
 
   if (!state) {
     return (
-      <MantineProvider theme={theme} defaultColorScheme="dark">
+      <AppTheme>
         <Stack align="center" p="xl">
           <Loader />
         </Stack>
-      </MantineProvider>
+      </AppTheme>
     );
   }
 
   if (!state.isPublished) {
     return (
-      <MantineProvider theme={theme} defaultColorScheme="dark">
+      <AppTheme>
         <Stack p="xl" maw={560} mx="auto" mt="xl">
           <Paper withBorder p="lg" radius="md">
             <Stack gap="md">
@@ -76,7 +71,7 @@ export function DemoClientPage() {
             </Stack>
           </Paper>
         </Stack>
-      </MantineProvider>
+      </AppTheme>
     );
   }
 
@@ -86,22 +81,30 @@ export function DemoClientPage() {
     "Demo";
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Notifications />
+    <AppTheme>
       <Paper
         withBorder={false}
         radius={0}
         p="xs"
-        style={{ borderBottom: "1px solid var(--mantine-color-dark-4)" }}
+        style={{ borderBottom: "1px solid var(--raseed-hairline)" }}
       >
-        <Group justify="space-between" px="md">
-          <Text size="xs" c="yellow.6">
-            Demo mode — this page is generated from the template you edited in
-            your browser.
-          </Text>
+        <Group justify="space-between" px="md" wrap="nowrap">
+          <Group gap="xs" wrap="nowrap">
+            <Badge
+              color="yellow"
+              variant="light"
+              size="sm"
+              leftSection={<IconFlask size={11} />}
+            >
+              Demo mode
+            </Badge>
+            <Text size="xs" c="dimmed" visibleFrom="sm">
+              Generated from the template you edited in your browser.
+            </Text>
+          </Group>
           <Group gap="md">
-            <Anchor component={Link} href="/admin/demo" size="xs">
-              Edit demo template
+            <Anchor component={Link} href="/admin/demo" size="xs" fw={500}>
+              Edit template
             </Anchor>
             <Anchor component={Link} href="/" size="xs" c="dimmed">
               Home
@@ -115,6 +118,6 @@ export function DemoClientPage() {
         organizationDisplayName={state.orgName}
         templateConfig={state.config}
       />
-    </MantineProvider>
+    </AppTheme>
   );
 }

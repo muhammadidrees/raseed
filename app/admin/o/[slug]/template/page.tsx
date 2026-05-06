@@ -118,10 +118,7 @@ export default function AdminTemplatePage() {
     void load();
   }, [load]);
 
-  const liveConfig = useMemo(
-    () => formToConfig(form.values),
-    [form.values],
-  );
+  const liveConfig = useMemo(() => formToConfig(form.values), [form.values]);
 
   const handleSave = async () => {
     if (!org) return;
@@ -333,7 +330,8 @@ export default function AdminTemplatePage() {
                   px="sm"
                   py={8}
                   style={{
-                    borderBottom: "1px solid var(--mantine-color-dark-4)",
+                    borderBottom: "1px solid var(--raseed-hairline)",
+                    background: "var(--mantine-color-body)",
                   }}
                 >
                   <Group gap="xs">

@@ -1,11 +1,8 @@
 "use client";
 
-import { createTheme, MantineProvider } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { AppTheme } from "@/app/components/AppTheme";
 import App from "../app";
 import type { PublishedInvoiceTemplate } from "@/lib/invoice-template";
-
-const theme = createTheme({});
 
 function exportLabelFromTemplate(t: PublishedInvoiceTemplate): string {
   if (t.config.exportName?.trim()) return t.config.exportName.trim();
@@ -22,14 +19,13 @@ export function CompanyClientPage({
   const exportFileLabel = exportLabelFromTemplate(template);
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Notifications />
+    <AppTheme>
       <App
         storageNamespace={template.slug}
         exportFileLabel={exportFileLabel}
         organizationDisplayName={template.organizationName}
         templateConfig={template.config}
       />
-    </MantineProvider>
+    </AppTheme>
   );
 }

@@ -23,11 +23,11 @@ export function AccordianControl({
       suppressHydrationWarning
       icon={
         isFormEmpty ? (
-          <IconAlertSquareRounded color={theme.colors.red[9]} />
+          <IconAlertSquareRounded color={theme.colors.red[6]} />
         ) : isFormUnsaved ? (
-          <IconHelpSquareRounded color={theme.colors.blue[9]} />
+          <IconHelpSquareRounded color={theme.colors.brand[6]} />
         ) : (
-          <IconSquareRoundedCheck color={theme.colors.teal[9]} />
+          <IconSquareRoundedCheck color={theme.colors.teal[6]} />
         )
       }
     >

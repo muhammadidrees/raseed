@@ -37,10 +37,7 @@ export function AdminJumpPill() {
 
         type Row = {
           organization_id: string;
-          organizations:
-            | { slug: string }
-            | { slug: string }[]
-            | null;
+          organizations: { slug: string } | { slug: string }[] | null;
         };
         const member = (data as unknown as Row[] | null)?.some((r) => {
           const slug = Array.isArray(r.organizations)
@@ -65,8 +62,9 @@ export function AdminJumpPill() {
       component={Link}
       href={`/admin/o/${encodeURIComponent(storageNamespace)}/template`}
       variant="light"
-      color="blue"
+      color="brand"
       size="compact-xs"
+      radius="md"
       leftSection={<IconSettings size={12} />}
     >
       Open admin

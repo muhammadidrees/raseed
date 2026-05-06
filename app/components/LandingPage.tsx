@@ -1,30 +1,90 @@
 "use client";
 
-import "@mantine/core/styles.css";
-import "@mantine/notifications/styles.css";
-
 import {
   Anchor,
   Badge,
   Box,
   Button,
   Container,
-  createTheme,
   Divider,
   Grid,
   Group,
-  List,
-  MantineProvider,
   Paper,
+  SimpleGrid,
   Stack,
   Text,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import {
+  IconArrowRight,
+  IconBolt,
+  IconBuildingSkyscraper,
+  IconCalendarDollar,
+  IconCircleCheck,
+  IconCoins,
+  IconFileInvoice,
+  IconLock,
+  IconReceipt,
+  IconShieldCheck,
+  IconUsers,
+} from "@tabler/icons-react";
 import Link from "next/link";
+import { AppTheme } from "./AppTheme";
+import { BrandWordmark } from "./Brand";
+import { FtmoiSignature } from "./FtmoiSignature";
 import { Waitlist } from "./Waitlist";
 
-const theme = createTheme({});
+const FEATURES = [
+  {
+    icon: IconCoins,
+    title: "Currency, locked in",
+    body: "Pick your code, symbol, and whether it shows before or after the amount. Contractors can't change it.",
+  },
+  {
+    icon: IconReceipt,
+    title: "Invoice numbers, automatic",
+    body: "Date-driven schemes (MMYY, YYYYMM, custom) with optional prefix — every invoice numbered consistently.",
+  },
+  {
+    icon: IconCalendarDollar,
+    title: "Tax & payment terms",
+    body: "Set your VAT/GST rate and label, plus a curated list of Net 15 / 30 / 45 presets — or let them go custom.",
+  },
+  {
+    icon: IconUsers,
+    title: "Required contractor fields",
+    body: "Decide which identity fields are mandatory: full name, tax ID, address, email — anything you need on file.",
+  },
+  {
+    icon: IconBuildingSkyscraper,
+    title: "Your billing details, always",
+    body: '"Billed To" is server-locked to your org. Contractors only fill in their side, never yours.',
+  },
+  {
+    icon: IconLock,
+    title: "Privacy by default",
+    body: "Contractor data stays in their browser. We only store your template — not their personal info.",
+  },
+];
+
+const STEPS = [
+  {
+    n: "01",
+    title: "Configure once",
+    body: "Set your payee, currency, tax rate, due-terms presets, and which contractor fields are required.",
+  },
+  {
+    n: "02",
+    title: "Share a link",
+    body: "Send your contractors a single URL — raseedhq.com/yourco — that already enforces every rule.",
+  },
+  {
+    n: "03",
+    title: "Get clean PDFs",
+    body: "Compliant, on-brand invoices land in your inbox. No more chasing for missing tax IDs or wrong currencies.",
+  },
+];
 
 const FAQ = [
   {
@@ -45,178 +105,380 @@ const FAQ = [
   },
 ];
 
-export function LandingPage() {
+function TopNav() {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Notifications />
-      <Container size="lg" py="xl">
-        <Stack gap={48}>
-          {/* Hero */}
-          <Stack gap="lg" pt={32}>
-            <Group gap="xs">
-              <Title order={2} style={{ fontSize: 32 }}>
-                Raseed
-              </Title>
-              <Badge color="teal" variant="light" size="sm">
-                Closed alpha
-              </Badge>
-            </Group>
-            <Title order={1} style={{ fontSize: 44, lineHeight: 1.1 }}>
-              Stop chasing your contractors for invoice fixes.
-            </Title>
-            <Text size="lg" c="dimmed" maw={640}>
-              Configure your invoice template once — currency, invoice number
-              format, tax rate, required fields. Share a link. Get compliant
-              PDFs back from every contractor, every time.
-            </Text>
-            <Group gap="md">
-              <Button component={Link} href="/admin/demo" size="md">
-                Try the admin (no signup)
-              </Button>
-              <Anchor component={Link} href="/acme" size="sm" fw={500}>
-                See contractor view -&gt; /acme
-              </Anchor>
-            </Group>
-          </Stack>
+    <Box
+      component="nav"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        backdropFilter: "saturate(180%) blur(14px)",
+        WebkitBackdropFilter: "saturate(180%) blur(14px)",
+        background: "rgba(255,255,255,0.72)",
+        borderBottom: "1px solid var(--raseed-hairline)",
+      }}
+    >
+      <Container size="lg">
+        <Group h={64} justify="space-between" wrap="nowrap">
+          <BrandWordmark size={28} />
+          <Group gap="lg" wrap="nowrap" visibleFrom="sm">
+            <Anchor component={Link} href="#features" size="sm" c="dimmed">
+              Features
+            </Anchor>
+            <Anchor component={Link} href="#how" size="sm" c="dimmed">
+              How it works
+            </Anchor>
+            <Anchor component={Link} href="#faq" size="sm" c="dimmed">
+              FAQ
+            </Anchor>
+            <Anchor component={Link} href="/admin/login" size="sm" c="dimmed">
+              Sign in
+            </Anchor>
+          </Group>
+          <Button
+            component={Link}
+            href="#waitlist"
+            size="xs"
+            radius="md"
+            rightSection={<IconArrowRight size={14} />}
+          >
+            Get access
+          </Button>
+        </Group>
+      </Container>
+    </Box>
+  );
+}
 
-          {/* Three columns */}
-          <Grid gap="lg">
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <Paper withBorder p="md" radius="md" h="100%">
-                <Stack gap="xs">
-                  <Title order={5}>1. You configure</Title>
-                  <Text size="sm" c="dimmed">
-                    Set your payee company, bank, currency, tax rate, due-terms
-                    presets, and which contractor fields are required.
-                  </Text>
-                </Stack>
-              </Paper>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <Paper withBorder p="md" radius="md" h="100%">
-                <Stack gap="xs">
-                  <Title order={5}>2. They fill it in</Title>
-                  <Text size="sm" c="dimmed">
-                    Contractors load{" "}
-                    <Text span ff="monospace">
-                      raseedhq.com/yourco
-                    </Text>{" "}
-                    and see a form that already enforces your rules.
-                  </Text>
-                </Stack>
-              </Paper>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 4 }}>
-              <Paper withBorder p="md" radius="md" h="100%">
-                <Stack gap="xs">
-                  <Title order={5}>3. You get clean PDFs</Title>
-                  <Text size="sm" c="dimmed">
-                    Invoice number is auto-generated from the date in the
-                    format you picked. Currency, tax line, and labels match.
-                  </Text>
-                </Stack>
-              </Paper>
-            </Grid.Col>
-          </Grid>
+function Hero() {
+  return (
+    <Box style={{ position: "relative", overflow: "hidden" }}>
+      <div className="raseed-hero-glow" />
+      <Container size="lg" py={{ base: 56, sm: 96 }}>
+        <Stack gap="xl" pos="relative" style={{ zIndex: 1 }}>
+          <Group className="raseed-reveal">
+            <Badge
+              variant="light"
+              color="brand"
+              size="lg"
+              radius="sm"
+              leftSection={<IconBolt size={12} />}
+              style={{ paddingLeft: 8 }}
+            >
+              Closed alpha — onboarding by hand
+            </Badge>
+          </Group>
 
-          <Divider />
+          <Title
+            order={1}
+            className="raseed-reveal raseed-reveal-delay-1"
+            style={{
+              fontSize: "clamp(2.4rem, 5vw, 3.6rem)",
+              lineHeight: 1.05,
+              letterSpacing: "-0.025em",
+              maxWidth: 820,
+            }}
+          >
+            Stop chasing your contractors for{" "}
+            <span className="raseed-gradient-text">invoice fixes</span>.
+          </Title>
 
-          {/* What you can configure */}
-          <Stack gap="md">
-            <Title order={3}>What you can configure today</Title>
-            <List size="sm" spacing={4}>
-              <List.Item>
-                <b>Payee details</b> — your business name, address, IBAN, BIC,
-                account title.
-              </List.Item>
-              <List.Item>
-                <b>Currency</b> — code, symbol, and whether it shows before or
-                after the amount.
-              </List.Item>
-              <List.Item>
-                <b>Invoice number scheme</b> — date-based formats (MMYY,
-                YYYYMM, YYMM, MMYYYY) or a custom pattern with{" "}
-                <Text span ff="monospace">
-                  &#123;yyyy&#125; &#123;yy&#125; &#123;mm&#125; &#123;dd&#125;
-                </Text>{" "}
-                placeholders, with optional prefix.
-              </List.Item>
-              <List.Item>
-                <b>Tax / VAT</b> — rate and label (Tax, VAT, GST, Sales Tax,
-                etc.).
-              </List.Item>
-              <List.Item>
-                <b>Date format</b> — dd/MM/yyyy, MM/dd/yyyy, yyyy-MM-dd.
-              </List.Item>
-              <List.Item>
-                <b>Payment terms</b> — your own list of presets (Net 15, Net
-                30, Net 45, etc.) plus &ldquo;Custom days&rdquo; as a fallback.
-              </List.Item>
-              <List.Item>
-                <b>Required contractor fields</b> — for each of name, email,
-                tax ID, street, city, zip: required, optional, or hidden.
-              </List.Item>
-              <List.Item>
-                <b>Business contact email</b> — printed in the PDF footer.
-              </List.Item>
-            </List>
-          </Stack>
+          <Text
+            size="xl"
+            c="dimmed"
+            maw={640}
+            className="raseed-reveal raseed-reveal-delay-2"
+            style={{ lineHeight: 1.55 }}
+          >
+            Configure your invoice template once — currency, numbering format,
+            tax rate, required fields. Share a single link. Get compliant PDFs
+            back from every contractor, every time.
+          </Text>
 
-          <Divider />
+          <Group
+            gap="md"
+            className="raseed-reveal raseed-reveal-delay-3"
+            wrap="wrap"
+          >
+            <Button
+              component={Link}
+              href="/admin/demo"
+              size="md"
+              radius="md"
+              rightSection={<IconArrowRight size={16} />}
+            >
+              Try the admin — no signup
+            </Button>
+            <Button
+              component={Link}
+              href="/acme"
+              size="md"
+              radius="md"
+              variant="default"
+              leftSection={<IconFileInvoice size={16} />}
+            >
+              See contractor view
+            </Button>
+          </Group>
 
-          {/* Waitlist */}
-          <Box>
-            <Stack gap="xs" mb="md">
-              <Title order={3}>Get early access</Title>
+          <Group
+            gap="xl"
+            mt="md"
+            className="raseed-reveal raseed-reveal-delay-3"
+          >
+            <Group gap={6}>
+              <IconShieldCheck size={16} color="var(--mantine-color-teal-6)" />
               <Text size="sm" c="dimmed">
-                We&apos;re onboarding the first orgs by hand. Tell us a bit
-                about your setup and we&apos;ll get back to you.
+                Contractor data never touches our servers
               </Text>
-            </Stack>
-            <Waitlist />
-          </Box>
-
-          <Divider />
-
-          {/* FAQ */}
-          <Stack gap="md">
-            <Title order={3}>FAQ</Title>
-            {FAQ.map((item) => (
-              <Box key={item.q}>
-                <Text fw={600} mb={2}>
-                  {item.q}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {item.a}
-                </Text>
-              </Box>
-            ))}
-          </Stack>
-
-          <Divider />
-
-          {/* Footer */}
-          <Group justify="space-between" pb="xl">
-            <Text size="xs" c="dimmed">
-              Raseed — built by Makula
-            </Text>
-            <Group gap="lg">
-              <Anchor component={Link} href="/admin/demo" size="xs" c="dimmed">
-                Try the admin
-              </Anchor>
-              <Anchor component={Link} href="/acme" size="xs" c="dimmed">
-                /acme demo
-              </Anchor>
-              <Anchor component={Link} href="/legacy" size="xs" c="dimmed">
-                Generic tool
-              </Anchor>
-              <Anchor component={Link} href="/admin/login" size="xs" c="dimmed">
-                Sign in
-              </Anchor>
+            </Group>
+            <Group gap={6} visibleFrom="sm">
+              <IconCircleCheck size={16} color="var(--mantine-color-teal-6)" />
+              <Text size="sm" c="dimmed">
+                Free during alpha
+              </Text>
             </Group>
           </Group>
         </Stack>
       </Container>
-    </MantineProvider>
+    </Box>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <Container size="lg" py="xl" id="how">
+      <Stack gap="xl">
+        <Stack gap={6} maw={620}>
+          <Text size="sm" fw={600} c="brand.6" tt="uppercase" lts="0.08em">
+            How it works
+          </Text>
+          <Title order={2}>Three steps from rules to clean PDFs</Title>
+        </Stack>
+        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+          {STEPS.map((s) => (
+            <Paper
+              key={s.n}
+              withBorder
+              p="xl"
+              radius="md"
+              className="raseed-hover-lift"
+              style={{ height: "100%" }}
+            >
+              <Stack gap="md">
+                <Text
+                  fw={700}
+                  size="sm"
+                  c="brand.6"
+                  style={{ letterSpacing: "0.06em" }}
+                >
+                  {s.n}
+                </Text>
+                <Title order={4}>{s.title}</Title>
+                <Text size="sm" c="dimmed" style={{ lineHeight: 1.6 }}>
+                  {s.body}
+                </Text>
+              </Stack>
+            </Paper>
+          ))}
+        </SimpleGrid>
+      </Stack>
+    </Container>
+  );
+}
+
+function Features() {
+  return (
+    <Container size="lg" py="xl" id="features">
+      <Stack gap="xl">
+        <Stack gap={6} maw={620}>
+          <Text size="sm" fw={600} c="brand.6" tt="uppercase" lts="0.08em">
+            Everything you can configure
+          </Text>
+          <Title order={2}>Your invoice format, enforced.</Title>
+          <Text c="dimmed" size="md" mt="xs">
+            Every contractor sees the same form, with the same rules, and
+            produces an invoice that already matches your accounting setup.
+          </Text>
+        </Stack>
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+          {FEATURES.map((f) => (
+            <Paper
+              key={f.title}
+              withBorder
+              p="lg"
+              radius="md"
+              className="raseed-hover-lift"
+              style={{ height: "100%" }}
+            >
+              <Stack gap="sm">
+                <ThemeIcon variant="light" color="brand" size={40} radius="md">
+                  <f.icon size={20} />
+                </ThemeIcon>
+                <Title order={5}>{f.title}</Title>
+                <Text size="sm" c="dimmed" style={{ lineHeight: 1.6 }}>
+                  {f.body}
+                </Text>
+              </Stack>
+            </Paper>
+          ))}
+        </SimpleGrid>
+      </Stack>
+    </Container>
+  );
+}
+
+function PrivacyBanner() {
+  return (
+    <Container size="lg" py="xl">
+      <Paper
+        withBorder
+        radius="lg"
+        p="xl"
+        style={{
+          background: "var(--raseed-gradient-soft)",
+          borderColor: "var(--mantine-color-brand-2)",
+        }}
+      >
+        <Grid align="center">
+          <Grid.Col span={{ base: 12, md: 8 }}>
+            <Group gap="md" wrap="nowrap" align="flex-start">
+              <ThemeIcon
+                size={48}
+                radius="md"
+                variant="white"
+                color="brand"
+                style={{ boxShadow: "var(--mantine-shadow-sm)" }}
+              >
+                <IconShieldCheck size={24} />
+              </ThemeIcon>
+              <Stack gap={4}>
+                <Title order={3}>Privacy is a feature, not a footnote.</Title>
+                <Text c="dimmed" size="sm" style={{ lineHeight: 1.6 }}>
+                  Your <b>template</b> lives on our server. Your{" "}
+                  <b>
+                    contractors&apos; personal info, bank details, and line
+                    items
+                  </b>{" "}
+                  stay in their browser — we never see them. One Clear-data
+                  button on every contractor page wipes everything locally.
+                </Text>
+              </Stack>
+            </Group>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Group justify="flex-end">
+              <Button
+                component={Link}
+                href="/admin/demo"
+                variant="default"
+                rightSection={<IconArrowRight size={14} />}
+              >
+                See how it works
+              </Button>
+            </Group>
+          </Grid.Col>
+        </Grid>
+      </Paper>
+    </Container>
+  );
+}
+
+function WaitlistSection() {
+  return (
+    <Container size="md" py="xl" id="waitlist">
+      <Stack gap="lg">
+        <Stack gap={6} ta="center">
+          <Text size="sm" fw={600} c="brand.6" tt="uppercase" lts="0.08em">
+            Get early access
+          </Text>
+          <Title order={2}>Join the alpha</Title>
+          <Text c="dimmed" maw={520} mx="auto">
+            We&apos;re onboarding the first orgs by hand. Tell us a bit about
+            your setup and we&apos;ll get back to you in a few business days.
+          </Text>
+        </Stack>
+        <Waitlist />
+      </Stack>
+    </Container>
+  );
+}
+
+function Faq() {
+  return (
+    <Container size="md" py="xl" id="faq">
+      <Stack gap="lg">
+        <Stack gap={6}>
+          <Text size="sm" fw={600} c="brand.6" tt="uppercase" lts="0.08em">
+            FAQ
+          </Text>
+          <Title order={2}>Common questions</Title>
+        </Stack>
+        <Stack gap="md">
+          {FAQ.map((item) => (
+            <Paper key={item.q} withBorder p="lg" radius="md">
+              <Stack gap={6}>
+                <Text fw={600}>{item.q}</Text>
+                <Text size="sm" c="dimmed" style={{ lineHeight: 1.65 }}>
+                  {item.a}
+                </Text>
+              </Stack>
+            </Paper>
+          ))}
+        </Stack>
+      </Stack>
+    </Container>
+  );
+}
+
+function Footer() {
+  return (
+    <Box
+      component="footer"
+      mt="xl"
+      style={{ borderTop: "1px solid var(--raseed-hairline)" }}
+    >
+      <Container size="lg" py="xl">
+        <Group justify="space-between" wrap="wrap" gap="md">
+          <Group gap="md" wrap="wrap" align="center">
+            <BrandWordmark size={22} />
+            <FtmoiSignature />
+          </Group>
+          <Group gap="lg">
+            <Anchor component={Link} href="/admin/demo" size="xs" c="dimmed">
+              Try the admin
+            </Anchor>
+            <Anchor component={Link} href="/acme" size="xs" c="dimmed">
+              /acme demo
+            </Anchor>
+            <Anchor component={Link} href="/legacy" size="xs" c="dimmed">
+              Generic tool
+            </Anchor>
+            <Anchor component={Link} href="/admin/login" size="xs" c="dimmed">
+              Sign in
+            </Anchor>
+          </Group>
+        </Group>
+      </Container>
+    </Box>
+  );
+}
+
+export function LandingPage() {
+  return (
+    <AppTheme>
+      <TopNav />
+      <Hero />
+      <Divider />
+      <Features />
+      <HowItWorks />
+      <PrivacyBanner />
+      <Divider />
+      <WaitlistSection />
+      <Divider />
+      <Faq />
+      <Footer />
+    </AppTheme>
   );
 }

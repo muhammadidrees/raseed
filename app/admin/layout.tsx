@@ -1,8 +1,5 @@
-import { MantineProvider, createTheme } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { AppTheme } from "@/app/components/AppTheme";
 import { AdminNav } from "./components/AdminNav";
-
-const theme = createTheme({});
 
 export default function AdminLayout({
   children,
@@ -10,10 +7,9 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Notifications />
+    <AppTheme>
       <AdminNav />
       {children}
-    </MantineProvider>
+    </AppTheme>
   );
 }

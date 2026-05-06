@@ -1,20 +1,14 @@
-import "@mantine/core/styles.css";
-
-import { createTheme, MantineProvider } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { AppTheme } from "@/app/components/AppTheme";
 import App from "../app";
-
-const theme = createTheme({});
 
 export default function LegacyContractorPage() {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="dark">
-      <Notifications />
+    <AppTheme>
       <App
         exportFileLabel="Invoice"
         organizationDisplayName=""
         storageNamespace={undefined}
       />
-    </MantineProvider>
+    </AppTheme>
   );
 }

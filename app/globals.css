@@ -1,0 +1,112 @@
+/* Global tweaks layered on top of Mantine's theme tokens. */
+
+html,
+body {
+  background: var(--raseed-page-bg);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: var(--mantine-color-brand-2);
+  color: var(--mantine-color-brand-9);
+}
+
+/* Subtle keyframes used for hero/landing reveals. Components opt-in. */
+@keyframes raseed-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.raseed-reveal {
+  animation: raseed-fade-in-up 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.raseed-reveal-delay-1 {
+  animation-delay: 80ms;
+}
+.raseed-reveal-delay-2 {
+  animation-delay: 160ms;
+}
+.raseed-reveal-delay-3 {
+  animation-delay: 240ms;
+}
+
+/* Soft hover lift used on org cards / feature tiles. */
+.raseed-hover-lift {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+.raseed-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mantine-shadow-md);
+  border-color: var(--mantine-color-brand-3);
+}
+
+/* Gradient text helper. */
+.raseed-gradient-text {
+  background: var(--raseed-gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Decorative ambient glow used behind hero. */
+.raseed-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.raseed-hero-glow::before,
+.raseed-hero-glow::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+}
+.raseed-hero-glow::before {
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  left: -120px;
+  background: radial-gradient(
+    closest-side,
+    rgba(72, 83, 231, 0.45),
+    transparent
+  );
+}
+.raseed-hero-glow::after {
+  width: 360px;
+  height: 360px;
+  top: -60px;
+  right: -100px;
+  background: radial-gradient(
+    closest-side,
+    rgba(123, 95, 232, 0.4),
+    transparent
+  );
+}
+
+[data-mantine-color-scheme="dark"] .raseed-hero-glow::before {
+  opacity: 0.45;
+}
+[data-mantine-color-scheme="dark"] .raseed-hero-glow::after {
+  opacity: 0.4;
+}

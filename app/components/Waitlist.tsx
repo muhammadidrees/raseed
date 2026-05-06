@@ -3,13 +3,16 @@
 import { useState } from "react";
 import {
   Button,
+  Group,
   NumberInput,
-  Stack,
-  TextInput,
-  Textarea,
-  Text,
   Paper,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  ThemeIcon,
 } from "@mantine/core";
+import { IconCheck, IconSend2 } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser-client";
@@ -67,7 +70,9 @@ export function Waitlist() {
       });
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "Could not submit. Try again later.";
+        err instanceof Error
+          ? err.message
+          : "Could not submit. Try again later.";
       notifications.show({ title: "Submission failed", message, color: "red" });
     } finally {
       setSubmitting(false);
@@ -76,32 +81,39 @@ export function Waitlist() {
 
   if (submitted) {
     return (
-      <Paper withBorder p="lg" radius="md">
-        <Stack gap="xs">
-          <Text fw={600}>You&apos;re on the list.</Text>
-          <Text size="sm" c="dimmed">
-            We&apos;re onboarding new orgs by hand right now. Expect a reply
-            within a few business days.
-          </Text>
-        </Stack>
+      <Paper withBorder p="xl" radius="lg" shadow="sm">
+        <Group gap="md" align="flex-start" wrap="nowrap">
+          <ThemeIcon variant="light" color="teal" size={44} radius="md">
+            <IconCheck size={22} />
+          </ThemeIcon>
+          <Stack gap={4}>
+            <Text fw={600}>You&apos;re on the list.</Text>
+            <Text size="sm" c="dimmed">
+              We&apos;re onboarding new orgs by hand right now. Expect a reply
+              within a few business days.
+            </Text>
+          </Stack>
+        </Group>
       </Paper>
     );
   }
 
   return (
-    <Paper withBorder p="lg" radius="md">
+    <Paper withBorder p="xl" radius="lg" shadow="sm">
       <form onSubmit={form.onSubmit(handleSubmit)}>
-        <Stack gap="sm">
+        <Stack gap="md">
           <TextInput
-            label="Email"
+            label="Work email"
             placeholder="you@company.com"
             required
             type="email"
+            size="md"
             {...form.getInputProps("email")}
           />
           <TextInput
             label="Company name"
             placeholder="e.g. Acme Logistics"
+            size="md"
             {...form.getInputProps("companyName")}
           />
           <NumberInput
@@ -109,19 +121,30 @@ export function Waitlist() {
             placeholder="approx."
             min={0}
             max={1000}
+            size="md"
             {...form.getInputProps("contractorCount")}
           />
           <Textarea
             label="What's the biggest pain in your current invoice flow?"
-            placeholder="Optional"
+            placeholder="Optional — wrong tax IDs, inconsistent numbering, missing currency…"
             autosize
             minRows={2}
             maxRows={5}
+            size="md"
             {...form.getInputProps("message")}
           />
-          <Button type="submit" loading={submitting}>
+          <Button
+            type="submit"
+            loading={submitting}
+            size="md"
+            rightSection={<IconSend2 size={16} />}
+          >
             Get early access
           </Button>
+          <Text size="xs" c="dimmed" ta="center">
+            We&apos;ll only email you about your access — no marketing list,
+            ever.
+          </Text>
         </Stack>
       </form>
     </Paper>

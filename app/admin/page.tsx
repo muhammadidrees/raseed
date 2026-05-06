@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   Anchor,
+  Avatar,
   Badge,
+  Box,
   Button,
   Container,
   Group,
@@ -11,9 +13,17 @@ import {
   Paper,
   Stack,
   Text,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
-import { IconEdit, IconExternalLink } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconBuildingStore,
+  IconCircleCheck,
+  IconEdit,
+  IconExternalLink,
+  IconSparkles,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser-client";
@@ -135,120 +145,186 @@ export default function AdminHomePage() {
 
   if (loading) {
     return (
-      <Stack align="center" p="xl">
-        <Loader />
+      <Stack align="center" justify="center" mih={320} gap="xs">
+        <Loader color="brand" />
+        <Text size="sm" c="dimmed">
+          Loading your organizations…
+        </Text>
       </Stack>
     );
   }
 
   if (error) {
     return (
-      <Stack p="xl">
-        <Text c="red">{error}</Text>
-      </Stack>
+      <Container size="sm" py="xl">
+        <Paper withBorder p="lg" radius="md">
+          <Group gap="md" wrap="nowrap" align="flex-start">
+            <ThemeIcon variant="light" color="red" radius="md" size={40}>
+              <IconAlertCircle size={20} />
+            </ThemeIcon>
+            <Stack gap={4}>
+              <Text fw={600}>Couldn&apos;t load your organizations</Text>
+              <Text size="sm" c="dimmed">
+                {error}
+              </Text>
+            </Stack>
+          </Group>
+        </Paper>
+      </Container>
     );
   }
 
   if (orgs.length === 0) {
     return (
       <Container size="sm" py="xl">
-        <Stack>
-          <Title order={3}>No organizations yet</Title>
-          <Text size="sm" c="dimmed">
-            You&apos;re signed in but you haven&apos;t been added to any
-            organization. The Raseed owner needs to add your user id to{" "}
-            <code>organization_members</code>. See <code>AGENTS.md</code> for
-            the provisioning runbook.
-          </Text>
-          <Anchor component={Link} href="/admin/demo" size="sm">
-            Try the demo template editor →
-          </Anchor>
-        </Stack>
+        <Paper withBorder p="xl" radius="lg">
+          <Stack gap="md" align="center" ta="center">
+            <ThemeIcon variant="light" color="brand" size={56} radius="md">
+              <IconBuildingStore size={28} />
+            </ThemeIcon>
+            <Title order={3}>No organizations yet</Title>
+            <Text size="sm" c="dimmed" maw={420}>
+              You&apos;re signed in but haven&apos;t been added to an
+              organization yet. The Raseed owner needs to add your user id to{" "}
+              <Text span ff="monospace" inherit>
+                organization_members
+              </Text>
+              .
+            </Text>
+            <Button
+              component={Link}
+              href="/admin/demo"
+              variant="light"
+              leftSection={<IconSparkles size={14} />}
+            >
+              Try the demo editor
+            </Button>
+          </Stack>
+        </Paper>
       </Container>
     );
   }
 
   return (
     <Container size="md" py="xl">
-      <Stack>
-        <Group justify="space-between" align="flex-end">
+      <Stack gap="xl">
         <Stack gap={4}>
-          <Title order={3}>Your organizations</Title>
+          <Title order={2}>Your organizations</Title>
           <Text size="sm" c="dimmed">
             {orgs.length === 1
               ? "1 organization"
               : `${orgs.length} organizations`}
+            {" · "}
+            Pick one to edit its invoice template.
           </Text>
         </Stack>
-      </Group>
 
-      <Stack gap="sm">
-        {orgs.map((o) => {
-          const editHref = `/admin/o/${encodeURIComponent(o.slug)}/template`;
-          const liveHref = `/${encodeURIComponent(o.slug)}`;
-          return (
-            <Paper key={o.id} withBorder p="md" radius="md">
-              <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Stack gap={4}>
-                  <Group gap="xs">
-                    <Text fw={600}>{o.name}</Text>
-                    {o.isPublished ? (
-                      <Badge color="teal" variant="light" size="sm">
-                        Published
-                      </Badge>
-                    ) : (
-                      <Badge color="gray" variant="light" size="sm">
-                        Draft
-                      </Badge>
-                    )}
+        <Stack gap="sm">
+          {orgs.map((o) => {
+            const editHref = `/admin/o/${encodeURIComponent(o.slug)}/template`;
+            const liveHref = `/${encodeURIComponent(o.slug)}`;
+            const initial = (o.name || o.slug).trim().charAt(0).toUpperCase();
+            return (
+              <Paper
+                key={o.id}
+                withBorder
+                p="lg"
+                radius="md"
+                className="raseed-hover-lift"
+              >
+                <Group
+                  justify="space-between"
+                  align="center"
+                  wrap="wrap"
+                  gap="md"
+                >
+                  <Group gap="md" wrap="nowrap">
+                    <Avatar
+                      size={44}
+                      radius="md"
+                      color="brand"
+                      variant="filled"
+                      style={{
+                        background: "var(--raseed-gradient-hero)",
+                        color: "#fff",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {initial || "·"}
+                    </Avatar>
+                    <Stack gap={2}>
+                      <Group gap="xs" wrap="nowrap">
+                        <Text fw={600} size="md">
+                          {o.name}
+                        </Text>
+                        {o.isPublished ? (
+                          <Badge
+                            color="teal"
+                            variant="light"
+                            size="sm"
+                            leftSection={<IconCircleCheck size={11} />}
+                          >
+                            Published
+                          </Badge>
+                        ) : (
+                          <Badge color="gray" variant="light" size="sm">
+                            Draft
+                          </Badge>
+                        )}
+                      </Group>
+                      <Group gap={6}>
+                        <Text size="sm" c="dimmed" ff="monospace">
+                          /{o.slug}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          · updated {formatRelative(o.updatedAt)}
+                        </Text>
+                      </Group>
+                    </Stack>
                   </Group>
-                  <Group gap="xs">
-                    <Text size="sm" c="dimmed">
-                      /{o.slug}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      · last updated {formatRelative(o.updatedAt)}
-                    </Text>
+                  <Group gap="xs" wrap="nowrap">
+                    <Button
+                      component={Link}
+                      href={editHref}
+                      variant="filled"
+                      size="sm"
+                      leftSection={<IconEdit size={14} />}
+                    >
+                      Edit template
+                    </Button>
+                    <Button
+                      component={Link}
+                      href={liveHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      variant="default"
+                      size="sm"
+                      rightSection={<IconExternalLink size={14} />}
+                      disabled={!o.isPublished}
+                      title={
+                        o.isPublished
+                          ? "Open the live contractor view"
+                          : "Publish this template first"
+                      }
+                    >
+                      View live
+                    </Button>
                   </Group>
-                </Stack>
-                <Group gap="xs" wrap="nowrap">
-                  <Button
-                    component={Link}
-                    href={editHref}
-                    variant="filled"
-                    size="xs"
-                    leftSection={<IconEdit size={14} />}
-                  >
-                    Edit template
-                  </Button>
-                  <Button
-                    component={Link}
-                    href={liveHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    variant="default"
-                    size="xs"
-                    rightSection={<IconExternalLink size={14} />}
-                    disabled={!o.isPublished}
-                    title={
-                      o.isPublished
-                        ? "Open the live contractor view"
-                        : "Publish this template first"
-                    }
-                  >
-                    View live
-                  </Button>
                 </Group>
-              </Group>
-            </Paper>
-          );
-        })}
-      </Stack>
+              </Paper>
+            );
+          })}
+        </Stack>
 
-      <Text size="xs" c="dimmed" mt="md">
-        Need a new organization? Provision it via the runbook in{" "}
-        <code>AGENTS.md</code> — self-serve signup ships after closed alpha.
-      </Text>
+        <Box>
+          <Text size="xs" c="dimmed">
+            Need a new organization?{" "}
+            <Anchor href="mailto:hello@raseedhq.com" size="xs">
+              Email us
+            </Anchor>{" "}
+            — self-serve signup ships after closed alpha.
+          </Text>
+        </Box>
       </Stack>
     </Container>
   );

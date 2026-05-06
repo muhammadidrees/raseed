@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react";
 import {
+  Avatar,
   Button,
   Container,
+  Divider,
+  Group,
   Paper,
   PasswordInput,
   Stack,
   Text,
   Title,
 } from "@mantine/core";
+import { IconKey, IconUser } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useRouter } from "next/navigation";
@@ -37,8 +41,7 @@ export default function AccountPage() {
   const form = useForm<{ newPassword: string; confirmPassword: string }>({
     initialValues: { newPassword: "", confirmPassword: "" },
     validate: {
-      newPassword: (v) =>
-        v.length < 8 ? "Use at least 8 characters" : null,
+      newPassword: (v) => (v.length < 8 ? "Use at least 8 characters" : null),
       confirmPassword: (v, values) =>
         v !== values.newPassword ? "Passwords do not match" : null,
     },
@@ -71,42 +74,72 @@ export default function AccountPage() {
   };
 
   return (
-    <Container size="xs" py="xl">
-      <Stack>
-        <Title order={3}>Account</Title>
-      <Paper withBorder p="md">
-        <Stack gap="xs">
+    <Container size="sm" py="xl">
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={2}>Account</Title>
           <Text size="sm" c="dimmed">
-            Signed in as
+            Manage how you sign in.
           </Text>
-          <Text fw={500}>{email ?? "…"}</Text>
         </Stack>
-      </Paper>
 
-      <Paper withBorder p="md">
-        <Title order={5} mb="sm">
-          Change password
-        </Title>
-        <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack gap="sm">
-            <PasswordInput
-              label="New password"
-              required
-              autoComplete="new-password"
-              {...form.getInputProps("newPassword")}
-            />
-            <PasswordInput
-              label="Confirm new password"
-              required
-              autoComplete="new-password"
-              {...form.getInputProps("confirmPassword")}
-            />
-            <Button type="submit" loading={saving}>
-              Update password
-            </Button>
+        <Paper withBorder p="lg" radius="md">
+          <Group gap="md" wrap="nowrap">
+            <Avatar
+              size={48}
+              radius="md"
+              style={{
+                background: "var(--raseed-gradient-hero)",
+                color: "#fff",
+                fontWeight: 600,
+              }}
+            >
+              {(email ?? "·").charAt(0).toUpperCase()}
+            </Avatar>
+            <Stack gap={2}>
+              <Group gap={6}>
+                <IconUser size={14} color="var(--raseed-muted)" />
+                <Text size="xs" c="dimmed" tt="uppercase" lts="0.06em">
+                  Signed in as
+                </Text>
+              </Group>
+              <Text fw={600}>{email ?? "…"}</Text>
+            </Stack>
+          </Group>
+        </Paper>
+
+        <Paper withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <Group gap={6}>
+              <IconKey size={16} color="var(--mantine-color-brand-6)" />
+              <Title order={5}>Change password</Title>
+            </Group>
+            <Divider />
+            <form onSubmit={form.onSubmit(handleSubmit)}>
+              <Stack gap="md">
+                <PasswordInput
+                  label="New password"
+                  required
+                  size="md"
+                  autoComplete="new-password"
+                  {...form.getInputProps("newPassword")}
+                />
+                <PasswordInput
+                  label="Confirm new password"
+                  required
+                  size="md"
+                  autoComplete="new-password"
+                  {...form.getInputProps("confirmPassword")}
+                />
+                <Group justify="flex-end" mt="xs">
+                  <Button type="submit" loading={saving}>
+                    Update password
+                  </Button>
+                </Group>
+              </Stack>
+            </form>
           </Stack>
-        </form>
-      </Paper>
+        </Paper>
       </Stack>
     </Container>
   );

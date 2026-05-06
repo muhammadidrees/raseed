@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import {
   Anchor,
+  Box,
   Button,
+  Center,
+  Code,
+  Container,
+  Divider,
+  Group,
   Paper,
   PasswordInput,
   Stack,
@@ -11,9 +17,11 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { IconArrowLeft, IconLock } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BrandWordmark } from "@/app/components/Brand";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser-client";
 
 function sanitizeNext(raw: string | null): string {
@@ -66,51 +74,81 @@ export function LoginForm() {
   };
 
   return (
-    <Stack align="center" w="100%" p="xl">
-      <Paper withBorder p="xl" maw={420} w="100%">
-        <Title order={3} mb="md">
-          Admin sign in
-        </Title>
-        <Text size="sm" c="dimmed" mb="lg">
-          Use the email and password we sent you. You can change your password
-          after signing in.
-          {next !== "/admin" ? (
-            <>
-              {" "}
-              After signing in you will be redirected to <code>{next}</code>.
-            </>
-          ) : null}
-        </Text>
-        <form onSubmit={handleSubmit}>
-          <Stack gap="md">
-            <TextInput
-              label="Email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.currentTarget.value)}
-              autoComplete="email"
-            />
-            <PasswordInput
-              label="Password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-              autoComplete="current-password"
-            />
-            <Button type="submit" loading={loading} fullWidth>
-              Sign in
-            </Button>
+    <Box style={{ position: "relative", minHeight: "calc(100vh - 60px)" }}>
+      <div className="raseed-hero-glow" />
+      <Container size={460} py={{ base: 32, sm: 64 }}>
+        <Center>
+          <Stack gap="xl" w="100%" pos="relative" style={{ zIndex: 1 }}>
+            <Center>
+              <BrandWordmark size={32} />
+            </Center>
+            <Paper withBorder p="xl" radius="lg" shadow="md">
+              <Stack gap="md">
+                <Stack gap={4}>
+                  <Group gap="xs">
+                    <IconLock size={18} color="var(--mantine-color-brand-6)" />
+                    <Title order={3}>Welcome back</Title>
+                  </Group>
+                  <Text size="sm" c="dimmed">
+                    Sign in to manage your invoice templates.
+                    {next !== "/admin" ? (
+                      <>
+                        {" "}
+                        We&apos;ll take you to <Code>{next}</Code> after.
+                      </>
+                    ) : null}
+                  </Text>
+                </Stack>
+                <Divider />
+                <form onSubmit={handleSubmit}>
+                  <Stack gap="md">
+                    <TextInput
+                      label="Email"
+                      placeholder="you@company.com"
+                      type="email"
+                      required
+                      size="md"
+                      value={email}
+                      onChange={(e) => setEmail(e.currentTarget.value)}
+                      autoComplete="email"
+                    />
+                    <PasswordInput
+                      label="Password"
+                      placeholder="••••••••"
+                      required
+                      size="md"
+                      value={password}
+                      onChange={(e) => setPassword(e.currentTarget.value)}
+                      autoComplete="current-password"
+                    />
+                    <Button type="submit" loading={loading} size="md" mt="xs">
+                      Sign in
+                    </Button>
+                  </Stack>
+                </form>
+                <Text size="xs" c="dimmed" ta="center">
+                  Forgot your password? Reply to your onboarding email and
+                  we&apos;ll reset it for you.
+                </Text>
+              </Stack>
+            </Paper>
+            <Center>
+              <Anchor
+                component={Link}
+                href="/"
+                size="sm"
+                c="dimmed"
+                underline="hover"
+              >
+                <Group gap={4}>
+                  <IconArrowLeft size={14} />
+                  Back to home
+                </Group>
+              </Anchor>
+            </Center>
           </Stack>
-        </form>
-        <Text size="xs" c="dimmed" mt="md">
-          Forgot your password? Reply to your onboarding email and we&apos;ll
-          reset it for you.
-        </Text>
-        <Anchor component={Link} href="/" size="sm" mt="md" display="block">
-          Back to home
-        </Anchor>
-      </Paper>
-    </Stack>
+        </Center>
+      </Container>
+    </Box>
   );
 }
