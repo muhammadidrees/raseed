@@ -18,11 +18,28 @@ import type { InvoiceTemplateConfig } from "@/lib/invoice-template";
 
 function Main() {
   return (
-    <Grid grow>
-      <Grid.Col span={3}>
+    <Grid grow gap={0} align="stretch">
+      <Grid.Col
+        span={{ base: 12, md: 5 }}
+        style={{
+          // Hairline divider between the form (left rail) and the document
+          // canvas (right). Only show on >=md, since on small screens the
+          // columns stack and a vertical line would be wrong.
+          borderRight: "1px solid var(--raseed-hairline)",
+          paddingRight: "var(--mantine-spacing-md)",
+        }}
+        className="raseed-form-rail"
+      >
         <InvoiceForm />
       </Grid.Col>
-      <Grid.Col span={5}>
+      <Grid.Col
+        span={{ base: 12, md: 7 }}
+        style={{
+          // Soft inset so the PDF reads as "the document on the workspace",
+          // not floating against the form.
+          paddingLeft: "var(--mantine-spacing-md)",
+        }}
+      >
         <Preview />
       </Grid.Col>
     </Grid>

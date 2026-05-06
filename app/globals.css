@@ -110,3 +110,16 @@ html {
 [data-mantine-color-scheme="dark"] .raseed-hero-glow::after {
   opacity: 0.4;
 }
+
+/* Workspace split: hairline only kicks in once the columns are side-by-side
+   (>= Mantine `md` breakpoint, ~62em). Below that the form stacks above the
+   preview, so a vertical border would be wrong. */
+@media (max-width: 61.99em) {
+  .raseed-form-rail {
+    border-right: none !important;
+    padding-right: 0 !important;
+    padding-bottom: var(--mantine-spacing-md);
+    border-bottom: 1px solid var(--raseed-hairline);
+    margin-bottom: var(--mantine-spacing-md);
+  }
+}
