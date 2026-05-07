@@ -14,7 +14,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from "@mantine/core";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import type { UseFormReturnType } from "@mantine/form";
@@ -30,8 +29,17 @@ import {
   PRESET_CONTRACTOR_EU_STANDARD,
   PRESET_CONTRACTOR_LIGHT,
 } from "@/lib/template-field-presets";
-import { COMMON_CURRENCIES, type TemplateFormShape } from "./template-form-helpers";
+import {
+  COMMON_CURRENCIES,
+  type TemplateFormShape,
+} from "./template-form-helpers";
 import { TemplateFieldListEditor } from "./TemplateFieldListEditor";
+import { SectionHeading } from "./SectionHeading";
+import {
+  CompanyLockedPreview,
+  ContractorPanelPreview,
+  ExportDialogPreview,
+} from "./ContractorPanelPreview";
 
 const CONTRACTOR_FIELD_PRESETS = [
   {
@@ -78,18 +86,22 @@ export function TemplateEditorForm({
   };
 
   return (
-    <Paper withBorder p="md">
-      <Stack gap="md">
-        <TextInput
-          label="Organization display name"
-          {...form.getInputProps("orgName")}
-        />
-        <TextInput
-          label="Export PDF label (short)"
-          description="Used in default download filename"
-          {...form.getInputProps("exportName")}
-        />
-        <Stack gap={6}>
+    <Paper withBorder p="md" radius="md">
+      <Stack gap="lg">
+        <Stack gap="sm">
+          <SectionHeading
+            title="Branding & contact"
+            description="How your org is named on the invoice and where contractors send the finished PDF."
+          />
+          <TextInput
+            label="Organization display name"
+            {...form.getInputProps("orgName")}
+          />
+          <TextInput
+            label="Export PDF label (short)"
+            description="Appears in the contractor's downloaded filename — e.g. “Acme Invoice - May 26.pdf”."
+            {...form.getInputProps("exportName")}
+          />
           <TextInput
             label="Business contact email"
             description='Auto-fills the "To:" field in the contractor&apos;s export dialog so they can email the invoice straight to your billing address.'
@@ -98,14 +110,19 @@ export function TemplateEditorForm({
           />
           <Checkbox
             label='Also print this email under "Billed To" on the invoice PDF'
-            description="When unchecked, the email still pre-fills the export dialog but doesn&apos;t appear on the printed invoice."
+            description="When unchecked, the email still pre-fills the export dialog but doesn't appear on the printed invoice."
             disabled={!form.values.businessEmail.trim()}
             {...form.getInputProps("showBusinessEmail", { type: "checkbox" })}
+          />
+          <ExportDialogPreview
+            businessEmail={form.values.businessEmail}
+            exportLabel={form.values.exportName}
+            showBusinessEmailOnPdf={form.values.showBusinessEmail}
           />
         </Stack>
 
         <Divider />
-        <Title order={5}>Currency</Title>
+        <SectionHeading title="Currency" region="items" />
         <Group grow align="flex-end">
           <Select
             label="Currency code"
@@ -141,10 +158,13 @@ export function TemplateEditorForm({
         </Group>
 
         <Divider />
-        <Title order={5}>Invoice number</Title>
+        <SectionHeading
+          title="Invoice number"
+          region="header"
+          description="How the invoice number is generated from the invoice date."
+        />
         <Radio.Group
           label="Scheme"
-          description="How the invoice number is generated from the invoice date"
           value={form.values.invoiceNumberKind}
           onChange={(v) =>
             form.setFieldValue(
@@ -178,7 +198,11 @@ export function TemplateEditorForm({
         )}
 
         <Divider />
-        <Title order={5}>Tax</Title>
+        <SectionHeading
+          title="Tax"
+          region="items"
+          description="Adds a tax row under the subtotal on the invoice."
+        />
         <Group grow>
           <NumberInput
             label="Tax rate (%)"
@@ -197,7 +221,11 @@ export function TemplateEditorForm({
         </Group>
 
         <Divider />
-        <Title order={5}>Date format</Title>
+        <SectionHeading
+          title="Date format"
+          region="header"
+          description="Used for issued / due / period dates on the printed invoice."
+        />
         <Select
           label="Date format on PDF"
           data={[
@@ -216,11 +244,13 @@ export function TemplateEditorForm({
         />
 
         <Divider />
-        <Title order={5}>Payment terms</Title>
-        <Text size="xs" c="dimmed">
-          Define the options the contractor can pick from. &ldquo;Custom&rdquo;
-          is always available as an extra fallback.
-        </Text>
+        <SectionHeading
+          title="Payment terms"
+          region="header"
+          description={
+            'Define the options the contractor can pick from when invoicing you. "Custom" is always available as an extra fallback.'
+          }
+        />
         <Stack gap="xs">
           {form.values.dueTermsPresets.map((_preset, idx) => (
             <Group key={idx} grow align="flex-end">
@@ -268,56 +298,89 @@ export function TemplateEditorForm({
         </Stack>
 
         <Divider />
-        <TemplateFieldListEditor
-          form={form}
-          listKey="contractorFields"
-          title="Contractor identity (Personal Info)"
-          description={
-            "Define every question contractors answer before invoicing you — labels and placeholders are yours. Same stable-field rules as payment details: the internal id never changes unless you delete and recreate a row. Reorder rows by dragging the grip handle (keyboard: focus the handle, then arrow keys)."
-          }
-          presets={CONTRACTOR_FIELD_PRESETS}
-          emptyHint="No fields — the Personal Info accordion is hidden on the contractor app."
-        />
+        <Stack gap="md">
+          <SectionHeading
+            title="Contractor identity (From)"
+            region="from"
+            description="Every question contractors answer before invoicing you — labels and placeholders are yours. The internal id never changes unless you delete and recreate a row. Drag the grip handle to reorder."
+          />
+          <TemplateFieldListEditor
+            form={form}
+            listKey="contractorFields"
+            presets={CONTRACTOR_FIELD_PRESETS}
+            emptyHint="No fields — the From accordion is hidden on the contractor app."
+          />
+          <ContractorPanelPreview
+            fields={form.values.contractorFields}
+            title="From"
+            emptyHint="With no fields, the From accordion is hidden entirely on the contractor app."
+            variant="personal"
+          />
+        </Stack>
 
         <Divider />
-        <Title order={5}>&ldquo;Billed To&rdquo; company on invoice</Title>
-        <Text size="xs" c="dimmed">
-          The org receiving the invoice. Locked on the contractor view — they
-          can&apos;t edit it.
-        </Text>
-        <TextInput label="Legal name" {...form.getInputProps("company.name")} />
-        <TextInput
-          label="Street"
-          {...form.getInputProps("company.address.street")}
-        />
-        <Group grow>
-          <TextInput
-            label="City"
-            {...form.getInputProps("company.address.city")}
+        <Stack gap="md">
+          <SectionHeading
+            title={"\u201CBilled To\u201D company on invoice"}
+            region="billed-to"
+            description="The org receiving the invoice. Locked on the contractor view — they can't edit it."
           />
           <TextInput
-            label="ZIP"
-            {...form.getInputProps("company.address.zip")}
+            label="Legal name"
+            {...form.getInputProps("company.name")}
           />
-        </Group>
+          <TextInput
+            label="Street"
+            {...form.getInputProps("company.address.street")}
+          />
+          <Group grow>
+            <TextInput
+              label="City"
+              {...form.getInputProps("company.address.city")}
+            />
+            <TextInput
+              label="ZIP"
+              {...form.getInputProps("company.address.zip")}
+            />
+          </Group>
+          <CompanyLockedPreview
+            company={{
+              name: form.values.company.name,
+              address: {
+                street: form.values.company.address.street,
+                city: form.values.company.address.city,
+                zip: form.values.company.address.zip,
+              },
+            }}
+            orgName={form.values.orgName}
+          />
+        </Stack>
 
         <Divider />
-        <TemplateFieldListEditor
-          form={form}
-          listKey="bankFields"
-          title="Payment Details"
-          description={
-            "Where the contractor wants to be paid. Pick a banking preset or roll your own fields. Reorder rows by dragging the grip handle (keyboard: focus the handle, then arrow keys)."
-          }
-          presets={BANK_FIELD_PRESETS}
-          emptyHint="No fields — Payment Details will not appear on the invoice or contractor form."
-        />
-
-        <Text size="xs" c="dimmed">
-          Optional bank pre-fill still lives in your template JSON (
-          <Code fz="xs">bank</Code> object, keyed by field id). Most orgs leave it
-          empty so every contractor uses their own payout details.
-        </Text>
+        <Stack gap="md">
+          <SectionHeading
+            title="Payment Details"
+            region="payment"
+            description="Where the contractor wants to be paid. Pick a banking preset or roll your own fields. Drag the grip handle to reorder."
+          />
+          <TemplateFieldListEditor
+            form={form}
+            listKey="bankFields"
+            presets={BANK_FIELD_PRESETS}
+            emptyHint="No fields — Payment Details will not appear on the invoice or contractor form."
+          />
+          <ContractorPanelPreview
+            fields={form.values.bankFields}
+            title="Payment Details"
+            emptyHint="With no fields, Payment Details is hidden on both the form and the printed invoice."
+            variant="bank"
+          />
+          <Text size="xs" c="dimmed">
+            Optional bank pre-fill still lives in your template JSON (
+            <Code fz="xs">bank</Code> object, keyed by field id). Most orgs
+            leave it empty so every contractor uses their own payout details.
+          </Text>
+        </Stack>
 
         {showPublishToggle ? (
           <>

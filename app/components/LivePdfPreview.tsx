@@ -18,35 +18,33 @@ import { IconZoomIn, IconZoomOut } from "@tabler/icons-react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// CDN-hosted worker matching the installed pdfjs version. Avoids copying
-// the worker bundle into /public on every deploy and works with Turbopack.
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const A4_RATIO = 297 / 210; // height / width
+const A4_RATIO = 297 / 210;
 
 type FitMode = "page" | "width";
-
+type SlotKey = "a" | "b";
 interface PageDims {
   width: number;
   height: number;
 }
+interface Slot {
+  url: string | null;
+  painted: boolean;
+}
 
 /**
- * Live PDF preview with two stacked `react-pdf` layers that crossfade.
+ * Live PDF preview using a stable two-slot ping-pong crossfade.
  *
- *   - Bottom layer = currently committed render. Always shown.
- *   - Top layer    = the next render in flight, mounted at opacity 0.
- *                    When its first page reports `onRenderSuccess` we fade
- *                    it to opacity 1; on transition end we promote it to
- *                    the committed render and unmount the now-redundant
- *                    bottom layer.
+ * Each slot persistently holds one rendered PDF blob. The "active" slot
+ * is shown at opacity 1; the other sits underneath at opacity 0. New
+ * urls always go into the *inactive* slot — the active slot's `file`
+ * prop is never swapped, so react-pdf never refetches the canvas the
+ * user is currently looking at. Once the inactive slot finishes painting
+ * its first page we flip which slot is active (CSS opacity transition).
  *
- * This eliminates the white flash you used to get when the URL swapped:
- * the old canvas stays visible until the new one is fully painted, then
- * crossfades. Save / debounced edits both feel smooth.
- *
- * The toolbar (zoom + fit mode) is a floating glass pill in the top-right
- * — out of the way of the document, but always reachable.
+ * This eliminates the brief blank flash the previous "promote URL into
+ * the back layer" approach produced.
  */
 export function LivePdfPreview({
   document: pdfDocument,
@@ -62,43 +60,37 @@ export function LivePdfPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfDocument]);
 
-  // What the user currently sees.
-  const [committedUrl, setCommittedUrl] = useState<string | null>(null);
-  // The next blob (still being painted). Only set once instance.loading=false.
-  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
-  // Becomes true once the front layer has actually drawn its first page.
-  const [pendingPainted, setPendingPainted] = useState(false);
+  const [slotA, setSlotA] = useState<Slot>({ url: null, painted: false });
+  const [slotB, setSlotB] = useState<Slot>({ url: null, painted: false });
+  const [active, setActive] = useState<SlotKey>("a");
 
-  useEffect(() => {
-    if (instance.loading || instance.error || !instance.url) return;
-    if (instance.url === committedUrl) return;
-    if (instance.url === pendingUrl) return;
-    // First-ever render → commit straight away (no crossfade needed).
-    if (committedUrl === null) {
-      setCommittedUrl(instance.url);
-      return;
-    }
-    // Otherwise stage a crossfade: mount the new URL on the top layer.
-    setPendingUrl(instance.url);
-    setPendingPainted(false);
-  }, [
-    instance.url,
-    instance.loading,
-    instance.error,
-    committedUrl,
-    pendingUrl,
-  ]);
-
-  // Promote the pending URL after the fade-in completes.
-  const promotePending = () => {
-    if (pendingUrl) {
-      setCommittedUrl(pendingUrl);
-      setPendingUrl(null);
-      setPendingPainted(false);
-    }
+  const writeSlot = (key: SlotKey, next: Slot) => {
+    if (key === "a") setSlotA(next);
+    else setSlotB(next);
   };
 
-  // Container size (drives fit-mode math).
+  // Push new urls into the inactive slot. (Or the active slot on first ever render.)
+  useEffect(() => {
+    if (instance.loading || instance.error || !instance.url) return;
+    const url = instance.url;
+    if (slotA.url === url || slotB.url === url) return;
+
+    const activeSlot = active === "a" ? slotA : slotB;
+    if (!activeSlot.url) {
+      writeSlot(active, { url, painted: false });
+      return;
+    }
+    const inactive: SlotKey = active === "a" ? "b" : "a";
+    writeSlot(inactive, { url, painted: false });
+  }, [instance.url, instance.loading, instance.error, slotA, slotB, active]);
+
+  const handleFirstPagePainted = (key: SlotKey) => {
+    if (key === "a") setSlotA((s) => (s.painted ? s : { ...s, painted: true }));
+    else setSlotB((s) => (s.painted ? s : { ...s, painted: true }));
+    if (key !== active) setActive(key);
+  };
+
+  // Container size for fit-mode math.
   const outerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({
     w: 0,
@@ -121,12 +113,11 @@ export function LivePdfPreview({
 
   const [fitMode, setFitMode] = useState<FitMode>("page");
   const [zoom, setZoom] = useState<number>(1);
-
   const [numPages, setNumPages] = useState<number>(0);
   const [pageDims, setPageDims] = useState<PageDims | null>(null);
 
   const ratio = pageDims ? pageDims.height / pageDims.width : A4_RATIO;
-  const verticalChrome = 32; // scroll padding only (toolbar is floating)
+  const verticalChrome = 32;
   const scrollAreaH = Math.max(0, containerSize.h - verticalChrome);
   const sidePadding = 24;
   const widthFitWidth = Math.max(0, containerSize.w - sidePadding);
@@ -135,16 +126,20 @@ export function LivePdfPreview({
     fitMode === "width" ? widthFitWidth : Math.min(widthFitWidth, widthFitPage);
   const pageWidth = Math.max(120, Math.floor(baseWidth * zoom));
 
-  const committedFile = useMemo(
-    () => (committedUrl ? { url: committedUrl } : null),
-    [committedUrl],
+  const slotAFile = useMemo(
+    () => (slotA.url ? { url: slotA.url } : null),
+    [slotA.url],
   );
-  const pendingFile = useMemo(
-    () => (pendingUrl ? { url: pendingUrl } : null),
-    [pendingUrl],
+  const slotBFile = useMemo(
+    () => (slotB.url ? { url: slotB.url } : null),
+    [slotB.url],
   );
 
-  const isUpdating = instance.loading || pendingUrl !== null;
+  const activeSlot = active === "a" ? slotA : slotB;
+  const inactiveSlot = active === "a" ? slotB : slotA;
+  const hasAnyVisible = !!activeSlot.url;
+  const isUpdating =
+    instance.loading || (!!inactiveSlot.url && !inactiveSlot.painted);
 
   return (
     <Box
@@ -156,8 +151,7 @@ export function LivePdfPreview({
         background: "var(--raseed-page-bg)",
       }}
     >
-      {/* Initial empty state */}
-      {!committedUrl ? (
+      {!hasAnyVisible ? (
         <Stack align="center" justify="center" h="100%" gap="xs">
           <Loader size="sm" color="brand" />
           <Text size="xs" c="dimmed">
@@ -173,64 +167,41 @@ export function LivePdfPreview({
         >
           <Stack align="center" gap={12} py={16} px={12}>
             <Box
-              style={{
-                position: "relative",
-                width: pageWidth || undefined,
-              }}
+              style={{ position: "relative", width: pageWidth || undefined }}
             >
-              {/* BACK LAYER — currently committed render. */}
-              <PdfLayer
-                file={committedFile}
+              <SlotLayer
+                slotKey="a"
+                isActive={active === "a"}
+                file={slotAFile}
                 pageWidth={pageWidth}
+                numPagesHint={numPages}
                 onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+                onFirstPagePainted={() => handleFirstPagePainted("a")}
                 onFirstPageDims={(p) => {
                   if (!pageDims || pageDims.width !== p.width) {
                     setPageDims({ width: p.width, height: p.height });
                   }
                 }}
-                numPagesHint={numPages}
               />
-              {/* FRONT LAYER — pending render, fades in on top. */}
-              {pendingFile ? (
-                <Box
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    opacity: pendingPainted ? 1 : 0,
-                    transition: "opacity 220ms ease",
-                    pointerEvents: pendingPainted ? "auto" : "none",
-                    willChange: "opacity",
-                  }}
-                  onTransitionEnd={(e) => {
-                    if (
-                      e.propertyName === "opacity" &&
-                      pendingPainted &&
-                      pendingUrl
-                    ) {
-                      promotePending();
-                    }
-                  }}
-                >
-                  <PdfLayer
-                    file={pendingFile}
-                    pageWidth={pageWidth}
-                    onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-                    onFirstPagePainted={() => setPendingPainted(true)}
-                    onFirstPageDims={(p) => {
-                      if (!pageDims || pageDims.width !== p.width) {
-                        setPageDims({ width: p.width, height: p.height });
-                      }
-                    }}
-                    numPagesHint={numPages}
-                  />
-                </Box>
-              ) : null}
+              <SlotLayer
+                slotKey="b"
+                isActive={active === "b"}
+                file={slotBFile}
+                pageWidth={pageWidth}
+                numPagesHint={numPages}
+                onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+                onFirstPagePainted={() => handleFirstPagePainted("b")}
+                onFirstPageDims={(p) => {
+                  if (!pageDims || pageDims.width !== p.width) {
+                    setPageDims({ width: p.width, height: p.height });
+                  }
+                }}
+              />
             </Box>
           </Stack>
         </ScrollArea>
       )}
 
-      {/* Floating toolbar — top-right, glass pill. */}
       <Group
         gap={4}
         wrap="nowrap"
@@ -271,9 +242,7 @@ export function LivePdfPreview({
             { value: "page", label: "Fit page" },
             { value: "width", label: "Fit width" },
           ]}
-          styles={{
-            root: { background: "transparent", border: "none" },
-          }}
+          styles={{ root: { background: "transparent", border: "none" } }}
         />
         <Tooltip label="Zoom in" withArrow openDelay={350}>
           <ActionIcon
@@ -288,8 +257,7 @@ export function LivePdfPreview({
         </Tooltip>
       </Group>
 
-      {/* Subtle "Updating preview" pill — bottom-right. */}
-      {isUpdating && committedUrl ? (
+      {isUpdating && hasAnyVisible ? (
         <Box
           style={{
             position: "absolute",
@@ -315,8 +283,7 @@ export function LivePdfPreview({
         </Box>
       ) : null}
 
-      {/* Page counter — bottom-left, subtle. */}
-      {numPages > 0 && committedUrl ? (
+      {numPages > 0 && hasAnyVisible ? (
         <Box
           style={{
             position: "absolute",
@@ -338,10 +305,49 @@ export function LivePdfPreview({
   );
 }
 
-/**
- * One pdfjs <Document> + page list. Reused for the back (committed) and
- * front (pending) crossfade layers.
- */
+function SlotLayer({
+  slotKey,
+  isActive,
+  file,
+  pageWidth,
+  numPagesHint,
+  onLoadSuccess,
+  onFirstPagePainted,
+  onFirstPageDims,
+}: {
+  slotKey: SlotKey;
+  isActive: boolean;
+  file: { url: string } | null;
+  pageWidth: number;
+  numPagesHint: number;
+  onLoadSuccess?: (info: { numPages: number }) => void;
+  onFirstPagePainted?: () => void;
+  onFirstPageDims?: (p: { width: number; height: number }) => void;
+}) {
+  return (
+    <Box
+      data-slot={slotKey}
+      style={{
+        position: isActive ? "relative" : "absolute",
+        inset: isActive ? undefined : 0,
+        opacity: isActive ? 1 : 0,
+        transition: "opacity 220ms ease",
+        pointerEvents: isActive ? "auto" : "none",
+        willChange: "opacity",
+      }}
+    >
+      <PdfLayer
+        file={file}
+        pageWidth={pageWidth}
+        numPagesHint={numPagesHint}
+        onLoadSuccess={onLoadSuccess}
+        onFirstPagePainted={onFirstPagePainted}
+        onFirstPageDims={onFirstPageDims}
+      />
+    </Box>
+  );
+}
+
 function PdfLayer({
   file,
   pageWidth,
@@ -357,11 +363,7 @@ function PdfLayer({
   onFirstPagePainted?: () => void;
   onFirstPageDims?: (p: { width: number; height: number }) => void;
 }) {
-  // Local count: react-pdf needs to know how many pages to render *for
-  // this Document instance*. We hint with `numPagesHint` for the initial
-  // render, then update onLoadSuccess.
   const [count, setCount] = useState<number>(numPagesHint || 1);
-
   useEffect(() => {
     if (numPagesHint) setCount(numPagesHint);
   }, [numPagesHint]);

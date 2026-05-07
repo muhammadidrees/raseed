@@ -31,11 +31,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import {
-  IconGripVertical,
-  IconPlus,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconGripVertical, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { UseFormReturnType } from "@mantine/form";
 import { useState } from "react";
 import type { TemplateFieldDefinition } from "@/lib/invoice-template";
@@ -83,9 +79,7 @@ function SortableFieldRow({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.35 : 1,
-    boxShadow: isDragging
-      ? "0 8px 24px rgba(0, 0, 0, 0.08)"
-      : undefined,
+    boxShadow: isDragging ? "0 8px 24px rgba(0, 0, 0, 0.08)" : undefined,
   };
 
   return (
@@ -152,11 +146,23 @@ function SortableFieldRow({
   );
 }
 
-function DragOverlayCard({ field, idx }: { field: TemplateFieldDefinition; idx: number }) {
+function DragOverlayCard({
+  field,
+  idx,
+}: {
+  field: TemplateFieldDefinition;
+  idx: number;
+}) {
   return (
     <Paper withBorder p="md" radius="md" shadow="md">
       <Group gap="xs" wrap="nowrap">
-        <ActionIcon variant="subtle" color="gray" size="lg" radius="md" style={{ cursor: "grabbing" }}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="lg"
+          radius="md"
+          style={{ cursor: "grabbing" }}
+        >
           <IconGripVertical size={18} stroke={1.5} />
         </ActionIcon>
         <Stack gap={2}>
@@ -182,8 +188,8 @@ export function TemplateFieldListEditor({
 }: {
   form: UseFormReturnType<TemplateFormShape>;
   listKey: TemplateFieldListKey;
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   presets: TemplateFieldPreset[];
   emptyHint: string;
 }) {
@@ -206,9 +212,7 @@ export function TemplateFieldListEditor({
         id: f.id,
         label: f.label,
         required: f.required,
-        ...(f.placeholder?.trim()
-          ? { placeholder: f.placeholder.trim() }
-          : {}),
+        ...(f.placeholder?.trim() ? { placeholder: f.placeholder.trim() } : {}),
       })),
     );
   };
@@ -253,12 +257,16 @@ export function TemplateFieldListEditor({
 
   return (
     <Stack gap="md">
-      <div>
-        <Title order={5}>{title}</Title>
-        <Text size="xs" c="dimmed" mt={6}>
-          {description}
-        </Text>
-      </div>
+      {title || description ? (
+        <div>
+          {title ? <Title order={5}>{title}</Title> : null}
+          {description ? (
+            <Text size="xs" c="dimmed" mt={6}>
+              {description}
+            </Text>
+          ) : null}
+        </div>
+      ) : null}
 
       <Group gap="xs" wrap="wrap">
         {presets.map((p) => (
@@ -271,9 +279,7 @@ export function TemplateFieldListEditor({
               applyPreset(
                 p.fields.map((f) => ({
                   ...f,
-                  ...(f.placeholder
-                    ? { placeholder: f.placeholder }
-                    : {}),
+                  ...(f.placeholder ? { placeholder: f.placeholder } : {}),
                 })),
               )
             }
@@ -295,7 +301,10 @@ export function TemplateFieldListEditor({
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={itemIds}
+            strategy={verticalListSortingStrategy}
+          >
             <Stack gap="sm">
               {fields.map((field, idx) => (
                 <SortableFieldRow
@@ -309,7 +318,9 @@ export function TemplateFieldListEditor({
             </Stack>
           </SortableContext>
           <DragOverlay dropAnimation={null}>
-            {activeField !== undefined && activeField !== null && activeIdx >= 0 ? (
+            {activeField !== undefined &&
+            activeField !== null &&
+            activeIdx >= 0 ? (
               <Box style={{ width: "min(100vw - 32px, 420px)" }}>
                 <DragOverlayCard field={activeField} idx={activeIdx} />
               </Box>
