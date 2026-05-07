@@ -56,10 +56,7 @@ export default function AdminDemoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const liveConfig = useMemo(
-    () => formToConfig(form.values),
-    [form.values],
-  );
+  const liveConfig = useMemo(() => formToConfig(form.values), [form.values]);
 
   const handleSave = () => {
     const config = formToConfig(form.values);
@@ -179,7 +176,7 @@ export default function AdminDemoPage() {
         </Paper>
 
         <Grid gap="md">
-          <Grid.Col span={{ base: 12, lg: 6 }}>
+          <Grid.Col span={{ base: 12, lg: 7 }}>
             <Stack gap="sm">
               <Text size="xs" c="dimmed">
                 Settings — these are your invoice rules. The preview on the
@@ -197,7 +194,7 @@ export default function AdminDemoPage() {
               </Group>
             </Stack>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, lg: 6 }}>
+          <Grid.Col span={{ base: 12, lg: 5 }}>
             <Box
               style={{
                 position: "sticky",

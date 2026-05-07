@@ -33,7 +33,14 @@ export const useInvoiceDataContext = (): InvoiceDataContextProps => {
 
 const isBrowser = typeof window !== "undefined";
 
-const loadInitialState = (namespace?: string): InvoiceData => {
+const blankItem = () => ({
+  description: "",
+  quantity: 1,
+  price: 0,
+  key: randomId(),
+});
+
+const loadInitialState = (namespace: string | undefined): InvoiceData => {
   try {
     if (isBrowser) {
       const storedData = localStorage.getItem(
@@ -56,14 +63,7 @@ const loadInitialState = (namespace?: string): InvoiceData => {
       customDueDays: undefined,
       periodStart: undefined,
       periodEnd: undefined,
-      items: [
-        {
-          description: "",
-          quantity: 1,
-          price: 0,
-          key: randomId(),
-        },
-      ],
+      items: [blankItem()],
     };
   } catch (error) {
     console.error("Error loading initial state:", error);
@@ -73,14 +73,7 @@ const loadInitialState = (namespace?: string): InvoiceData => {
       customDueDays: undefined,
       periodStart: undefined,
       periodEnd: undefined,
-      items: [
-        {
-          description: "",
-          quantity: 1,
-          price: 0,
-          key: randomId(),
-        },
-      ],
+      items: [blankItem()],
     };
   }
 };

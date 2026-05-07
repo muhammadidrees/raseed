@@ -287,7 +287,7 @@ export default function AdminTemplatePage() {
         </Paper>
 
         <Grid gap="md">
-          <Grid.Col span={{ base: 12, lg: 6 }}>
+          <Grid.Col span={{ base: 12, lg: 7 }}>
             <Stack gap="sm">
               <Text size="xs" c="dimmed">
                 Settings — these are your invoice rules. The preview on the
@@ -306,7 +306,7 @@ export default function AdminTemplatePage() {
               </Group>
             </Stack>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, lg: 6 }}>
+          <Grid.Col span={{ base: 12, lg: 5 }}>
             <Box
               style={{
                 position: "sticky",

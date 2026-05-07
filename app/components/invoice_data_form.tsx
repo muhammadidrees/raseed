@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import {
   TextInput,
+  Autocomplete,
   Button,
   Group,
   Stack,
@@ -96,10 +97,45 @@ export default function InvoiceDataForm() {
   const dueTermsSelectData = useMemo(
     () => [
       ...dueTermsPresets.map((p) => ({ value: p.id, label: p.label })),
-      { value: "custom", label: "Custom" },
+      ...(templateConfig.allowCustomDueTerms
+        ? [{ value: "custom", label: "Custom" }]
+        : []),
     ],
-    [dueTermsPresets],
+    [dueTermsPresets, templateConfig.allowCustomDueTerms],
   );
+  // Strict mode (admin defined presets and disabled custom days) and there's
+  // exactly one preset → render the field as a read-only display so it's
+  // visually obvious there's no choice to make.
+  const lockDueTerms =
+    !templateConfig.allowCustomDueTerms && dueTermsPresets.length === 1;
+  const lockedDueTermLabel = lockDueTerms ? dueTermsPresets[0].label : null;
+
+  const itemPresets = templateConfig.itemPresets;
+  const allowCustomItem = templateConfig.allowCustomItemDescriptions;
+  const itemDescriptionOptions = useMemo(
+    () => itemPresets.map((p) => p.description),
+    [itemPresets],
+  );
+  const itemPriceByDescription = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of itemPresets) {
+      if (typeof p.price === "number") map.set(p.description, p.price);
+    }
+    return map;
+  }, [itemPresets]);
+  // Modes for the description field:
+  //   "free"   → no presets, plain TextInput (legacy)
+  //   "locked" → exactly one preset and custom not allowed (read-only)
+  //   "select" → multiple presets and custom not allowed (strict dropdown)
+  //   "auto"   → presets exist and custom is allowed (Autocomplete)
+  const itemMode: "free" | "locked" | "select" | "auto" =
+    itemPresets.length === 0
+      ? "free"
+      : !allowCustomItem && itemPresets.length === 1
+        ? "locked"
+        : !allowCustomItem
+          ? "select"
+          : "auto";
   const termDescriptions = useMemo(() => {
     const map: Record<string, string> = {
       custom: "Set your own number of days",
@@ -180,6 +216,43 @@ export default function InvoiceDataForm() {
     setPeriodEnd(formData.periodEnd ? new Date(formData.periodEnd) : null);
     setPeriodError(null);
   }, [formData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-correct values when the admin's template restricts the available
+  // options (template change, or first-time contractor on a strict template):
+  //   - dueTerms: if locked or no longer in the preset list, reset to the
+  //     first preset.
+  //   - items: in "locked" mode, fill blank descriptions; in strict select
+  //     mode, blank out descriptions that aren't in the preset list so the
+  //     contractor must pick one.
+  useEffect(() => {
+    const validIds = new Set(dueTermsPresets.map((p) => p.id));
+    const cur = form.getValues().dueTerms;
+    const stillValid =
+      cur === "custom" ? templateConfig.allowCustomDueTerms : validIds.has(cur);
+    if (!stillValid && dueTermsPresets[0]) {
+      form.setFieldValue("dueTerms", dueTermsPresets[0].id);
+      form.setFieldValue("customDueDays", undefined);
+    }
+  }, [dueTermsPresets, templateConfig.allowCustomDueTerms, formData.dueTerms]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (itemMode === "free" || itemMode === "auto") return;
+    const items = form.getValues().items;
+    const validDescriptions = new Set(itemDescriptionOptions);
+    items.forEach((it, idx) => {
+      if (it.isBonusPayout) return;
+      if (itemMode === "locked") {
+        const target = itemDescriptionOptions[0];
+        if (it.description !== target) {
+          form.setFieldValue(`items.${idx}.description`, target);
+        }
+      } else if (itemMode === "select") {
+        if (it.description && !validDescriptions.has(it.description)) {
+          form.setFieldValue(`items.${idx}.description`, "");
+        }
+      }
+    });
+  }, [itemMode, itemDescriptionOptions, formData.items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When the selected month changes, keep custom period in sync with new month
   const handleMonthChange = (value: string | null) => {
@@ -316,13 +389,56 @@ export default function InvoiceDataForm() {
             leftSection={<IconGift size="0.9rem" />}
             styles={{ input: { fontStyle: "italic", opacity: 0.8 } }}
           />
-        ) : (
+        ) : itemMode === "free" ? (
           <TextInput
             placeholder="Description"
             withAsterisk
             style={{ flex: 4 }}
             key={form.key(`items.${index}.description`)}
             {...form.getInputProps(`items.${index}.description`)}
+          />
+        ) : itemMode === "locked" ? (
+          <TextInput
+            style={{ flex: 4 }}
+            value={itemDescriptionOptions[0] ?? ""}
+            readOnly
+            styles={{ input: { opacity: 0.85 } }}
+          />
+        ) : itemMode === "select" ? (
+          <Select
+            placeholder="Pick description"
+            withAsterisk
+            allowDeselect={false}
+            style={{ flex: 4 }}
+            data={itemDescriptionOptions}
+            key={form.key(`items.${index}.description`)}
+            value={form.getValues().items[index]?.description ?? null}
+            onChange={(value) => {
+              const next = value ?? "";
+              form.setFieldValue(`items.${index}.description`, next);
+              const presetPrice = itemPriceByDescription.get(next);
+              if (presetPrice !== undefined) {
+                form.setFieldValue(`items.${index}.price`, presetPrice);
+              }
+            }}
+          />
+        ) : (
+          <Autocomplete
+            placeholder="Description"
+            withAsterisk
+            style={{ flex: 4 }}
+            data={itemDescriptionOptions}
+            key={form.key(`items.${index}.description`)}
+            value={form.getValues().items[index]?.description ?? ""}
+            onChange={(value) => {
+              form.setFieldValue(`items.${index}.description`, value);
+            }}
+            onOptionSubmit={(value) => {
+              const presetPrice = itemPriceByDescription.get(value);
+              if (presetPrice !== undefined) {
+                form.setFieldValue(`items.${index}.price`, presetPrice);
+              }
+            }}
           />
         )}
 
@@ -479,28 +595,38 @@ export default function InvoiceDataForm() {
             );
           })()}
 
-        <Select
-          mt="md"
-          label="Payment Terms"
-          placeholder="Select payment terms"
-          description="When payment is expected"
-          withAsterisk
-          data={dueTermsSelectData}
-          renderOption={({ option }) => (
-            <Stack gap={1} py={2}>
-              <Text size="sm" fw={500}>
-                {option.label}
-              </Text>
-              <Text size="xs" c="dimmed">
-                {termDescriptions[option.value] ?? ""}
-              </Text>
-            </Stack>
-          )}
-          allowDeselect={false}
-          key={form.key("dueTerms")}
-          {...form.getInputProps("dueTerms")}
-        />
-
+        {lockDueTerms ? (
+          <TextInput
+            mt="md"
+            label="Payment Terms"
+            description="Set by the company"
+            value={lockedDueTermLabel ?? ""}
+            readOnly
+            styles={{ input: { opacity: 0.85 } }}
+          />
+        ) : (
+          <Select
+            mt="md"
+            label="Payment Terms"
+            placeholder="Select payment terms"
+            description="When payment is expected"
+            withAsterisk
+            data={dueTermsSelectData}
+            renderOption={({ option }) => (
+              <Stack gap={1} py={2}>
+                <Text size="sm" fw={500}>
+                  {option.label}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {termDescriptions[option.value] ?? ""}
+                </Text>
+              </Stack>
+            )}
+            allowDeselect={false}
+            key={form.key("dueTerms")}
+            {...form.getInputProps("dueTerms")}
+          />
+        )}
         {form.getValues().dueTerms === "custom" && (
           <NumberInput
             mt="md"

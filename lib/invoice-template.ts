@@ -48,6 +48,17 @@ export type TemplateFieldDefinition = {
 /** @deprecated Use TemplateFieldDefinition — kept as alias for readability in payment context */
 export type BankFieldDefinition = TemplateFieldDefinition;
 
+/**
+ * A predefined line-item description (and optional default price) the
+ * contractor can pick from a dropdown when filling the invoice. When the
+ * list is empty, the contractor sees a free-text input as before.
+ */
+export type ItemPreset = {
+  description: string;
+  /** Optional default unit price; pre-fills the row's price when this preset is selected. */
+  price?: number;
+};
+
 export interface InvoiceTemplateConfig {
   /** Payee company shown to contractor and printed on PDF. */
   company: CompanyInfo;
@@ -67,6 +78,21 @@ export interface InvoiceTemplateConfig {
   dateFormat: DateFormat;
   /** Selectable payment-terms presets. */
   dueTermsPresets: DueTermsPreset[];
+  /**
+   * When true (default), the contractor's payment-terms select includes a
+   * “Custom” option that lets them type any number of days. When false,
+   * they can only pick from `dueTermsPresets`.
+   */
+  allowCustomDueTerms: boolean;
+  /**
+   * Allowed line-item descriptions. Empty = contractor types anything (legacy
+   * behavior). When non-empty, the description field becomes a dropdown of
+   * these options. If `allowCustomItemDescriptions` is also true, the
+   * dropdown is type-ahead and accepts free text alongside suggestions.
+   */
+  itemPresets: ItemPreset[];
+  /** When false and `itemPresets` is non-empty, contractors must pick from the list. Default true. */
+  allowCustomItemDescriptions: boolean;
   /**
    * Ordered contractor identity/contact fields (shown under “Personal Info” and printed under From on the PDF).
    * Same shape as `bankFields`. Empty = hide Personal Info block entirely.
@@ -149,6 +175,9 @@ export const DEFAULT_INVOICE_TEMPLATE_CONFIG: InvoiceTemplateConfig = {
   taxRate: 0,
   dateFormat: DEFAULT_DATE_FORMAT,
   dueTermsPresets: DEFAULT_DUE_TERMS_PRESETS.map((p) => ({ ...p })),
+  allowCustomDueTerms: true,
+  itemPresets: [],
+  allowCustomItemDescriptions: true,
   contractorFields: DEFAULT_CONTRACTOR_FORM_FIELDS.map((f) => ({ ...f })),
   bankFields: DEFAULT_BANK_FIELDS.map((f) => ({ ...f })),
   showBusinessEmail: true,
@@ -169,9 +198,14 @@ const VALID_DATE_FORMATS = new Set<DateFormat>([
 function parseCurrency(raw: unknown): CurrencyConfig {
   if (!raw || typeof raw !== "object") return { ...DEFAULT_CURRENCY };
   const o = raw as Record<string, unknown>;
-  const code = typeof o.code === "string" && o.code.trim() ? o.code.trim() : DEFAULT_CURRENCY.code;
+  const code =
+    typeof o.code === "string" && o.code.trim()
+      ? o.code.trim()
+      : DEFAULT_CURRENCY.code;
   const symbol =
-    typeof o.symbol === "string" && o.symbol ? o.symbol : DEFAULT_CURRENCY.symbol;
+    typeof o.symbol === "string" && o.symbol
+      ? o.symbol
+      : DEFAULT_CURRENCY.symbol;
   const position: CurrencyConfig["position"] =
     o.position === "before" ? "before" : "after";
   return { code, symbol, position };
@@ -209,11 +243,13 @@ function parseDueTermsPresets(raw: unknown): DueTermsPreset[] {
     const label =
       typeof o.label === "string" && o.label.trim() ? o.label.trim() : id;
     const daysRaw = typeof o.days === "number" ? o.days : Number(o.days);
-    const days = Number.isFinite(daysRaw) && daysRaw >= 0 ? Math.floor(daysRaw) : 0;
+    const days =
+      Number.isFinite(daysRaw) && daysRaw >= 0 ? Math.floor(daysRaw) : 0;
     presets.push({ id, label, days });
     seenIds.add(id);
   }
-  if (presets.length === 0) return DEFAULT_DUE_TERMS_PRESETS.map((p) => ({ ...p }));
+  if (presets.length === 0)
+    return DEFAULT_DUE_TERMS_PRESETS.map((p) => ({ ...p }));
   return presets;
 }
 
@@ -241,8 +277,7 @@ const LEGACY_BANK_LABELS: Record<string, string> = {
 };
 
 function parseContractorFormFields(raw: unknown): TemplateFieldDefinition[] {
-  if (raw == null)
-    return DEFAULT_CONTRACTOR_FORM_FIELDS.map((f) => ({ ...f }));
+  if (raw == null) return DEFAULT_CONTRACTOR_FORM_FIELDS.map((f) => ({ ...f }));
 
   if (Array.isArray(raw)) {
     if (raw.length === 0) return [];
@@ -251,8 +286,7 @@ function parseContractorFormFields(raw: unknown): TemplateFieldDefinition[] {
     for (const item of raw) {
       if (!item || typeof item !== "object") continue;
       const o = item as Record<string, unknown>;
-      const id =
-        typeof o.id === "string" && o.id.trim() ? o.id.trim() : null;
+      const id = typeof o.id === "string" && o.id.trim() ? o.id.trim() : null;
       if (!id || seenIds.has(id)) continue;
       const label =
         typeof o.label === "string" && o.label.trim()
@@ -274,14 +308,7 @@ function parseContractorFormFields(raw: unknown): TemplateFieldDefinition[] {
   // Legacy visibility map
   if (typeof raw === "object") {
     const o = raw as Record<string, unknown>;
-    const order = [
-      "name",
-      "email",
-      "taxID",
-      "street",
-      "city",
-      "zip",
-    ] as const;
+    const order = ["name", "email", "taxID", "street", "city", "zip"] as const;
     const out: TemplateFieldDefinition[] = [];
     let sawAnyVisibilityKey = false;
     for (const id of order) {
@@ -314,8 +341,7 @@ function parseBankFields(raw: unknown): TemplateFieldDefinition[] {
     for (const item of raw) {
       if (!item || typeof item !== "object") continue;
       const o = item as Record<string, unknown>;
-      const id =
-        typeof o.id === "string" && o.id.trim() ? o.id.trim() : null;
+      const id = typeof o.id === "string" && o.id.trim() ? o.id.trim() : null;
       if (!id || seenIds.has(id)) continue;
       const label =
         typeof o.label === "string" && o.label.trim()
@@ -329,9 +355,7 @@ function parseBankFields(raw: unknown): TemplateFieldDefinition[] {
       out.push({ id, label, required, placeholder });
       seenIds.add(id);
     }
-    return out.length > 0
-      ? out
-      : DEFAULT_BANK_FIELDS.map((f) => ({ ...f }));
+    return out.length > 0 ? out : DEFAULT_BANK_FIELDS.map((f) => ({ ...f }));
   }
 
   // Legacy shape: visibility object `{ name: "required" | "optional" | "hidden", ... }`
@@ -371,7 +395,26 @@ function parseDateFormat(raw: unknown): DateFormat {
   return DEFAULT_DATE_FORMAT;
 }
 
-export function parseInvoiceTemplateConfig(raw: unknown): InvoiceTemplateConfig {
+function parseItemPresets(raw: unknown): ItemPreset[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ItemPreset[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const description =
+      typeof o.description === "string" ? o.description.trim() : "";
+    if (!description) continue;
+    const priceRaw = typeof o.price === "number" ? o.price : Number(o.price);
+    const price =
+      Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : undefined;
+    out.push(price === undefined ? { description } : { description, price });
+  }
+  return out;
+}
+
+export function parseInvoiceTemplateConfig(
+  raw: unknown,
+): InvoiceTemplateConfig {
   if (!raw || typeof raw !== "object") {
     return {
       ...DEFAULT_INVOICE_TEMPLATE_CONFIG,
@@ -380,6 +423,7 @@ export function parseInvoiceTemplateConfig(raw: unknown): InvoiceTemplateConfig 
       currency: { ...DEFAULT_CURRENCY },
       invoiceNumberScheme: { ...DEFAULT_INVOICE_NUMBER_SCHEME },
       dueTermsPresets: DEFAULT_DUE_TERMS_PRESETS.map((p) => ({ ...p })),
+      itemPresets: [],
       contractorFields: DEFAULT_CONTRACTOR_FORM_FIELDS.map((f) => ({ ...f })),
       bankFields: DEFAULT_BANK_FIELDS.map((f) => ({ ...f })),
     };
@@ -415,7 +459,8 @@ export function parseInvoiceTemplateConfig(raw: unknown): InvoiceTemplateConfig 
 
   const taxRateRaw =
     typeof o.taxRate === "number" ? o.taxRate : Number(o.taxRate);
-  const taxRate = Number.isFinite(taxRateRaw) && taxRateRaw >= 0 ? taxRateRaw : 0;
+  const taxRate =
+    Number.isFinite(taxRateRaw) && taxRateRaw >= 0 ? taxRateRaw : 0;
   const taxLabel =
     typeof o.taxLabel === "string" && o.taxLabel.trim()
       ? o.taxLabel.trim()
@@ -423,6 +468,13 @@ export function parseInvoiceTemplateConfig(raw: unknown): InvoiceTemplateConfig 
 
   const dateFormat = parseDateFormat(o.dateFormat);
   const dueTermsPresets = parseDueTermsPresets(o.dueTermsPresets);
+  const allowCustomDueTerms =
+    typeof o.allowCustomDueTerms === "boolean" ? o.allowCustomDueTerms : true;
+  const itemPresets = parseItemPresets(o.itemPresets);
+  const allowCustomItemDescriptions =
+    typeof o.allowCustomItemDescriptions === "boolean"
+      ? o.allowCustomItemDescriptions
+      : true;
   const contractorFields = parseContractorFormFields(o.contractorFields);
   const bankFields = parseBankFields(o.bankFields);
 
@@ -443,6 +495,9 @@ export function parseInvoiceTemplateConfig(raw: unknown): InvoiceTemplateConfig 
     taxLabel,
     dateFormat,
     dueTermsPresets,
+    allowCustomDueTerms,
+    itemPresets,
+    allowCustomItemDescriptions,
     contractorFields,
     bankFields,
     businessEmail,

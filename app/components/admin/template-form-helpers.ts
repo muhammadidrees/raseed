@@ -5,6 +5,7 @@ import {
   type DueTermsPreset,
   type InvoiceNumberScheme,
   type InvoiceTemplateConfig,
+  type ItemPreset,
   type TemplateFieldDefinition,
 } from "@/lib/invoice-template";
 
@@ -22,6 +23,9 @@ export type TemplateFormShape = {
   taxLabel: string;
   dateFormat: DateFormat;
   dueTermsPresets: DueTermsPreset[];
+  allowCustomDueTerms: boolean;
+  itemPresets: { description: string; price: number | string }[];
+  allowCustomItemDescriptions: boolean;
   contractorFields: TemplateFieldDefinition[];
   bankFields: TemplateFieldDefinition[];
   businessEmail: string;
@@ -54,9 +58,7 @@ function sanitizeFieldList(
       id: f.id.trim(),
       label: f.label.trim(),
       required: Boolean(f.required),
-      ...(f.placeholder?.trim()
-        ? { placeholder: f.placeholder.trim() }
-        : {}),
+      ...(f.placeholder?.trim() ? { placeholder: f.placeholder.trim() } : {}),
     }));
 }
 
@@ -85,6 +87,12 @@ export function configToForm(
     taxLabel: cfg.taxLabel ?? "",
     dateFormat: cfg.dateFormat,
     dueTermsPresets: cfg.dueTermsPresets.map((p) => ({ ...p })),
+    allowCustomDueTerms: cfg.allowCustomDueTerms,
+    itemPresets: cfg.itemPresets.map((i) => ({
+      description: i.description,
+      price: i.price === undefined ? "" : i.price,
+    })),
+    allowCustomItemDescriptions: cfg.allowCustomItemDescriptions,
     contractorFields: cfg.contractorFields.map((f) => ({
       ...f,
       placeholder: f.placeholder ?? "",
@@ -121,8 +129,7 @@ export function formToConfig(form: TemplateFormShape): InvoiceTemplateConfig {
     exportName: form.exportName.trim() || undefined,
     currency: { ...form.currency },
     invoiceNumberScheme,
-    taxRate:
-      Number.isFinite(taxRateNum) && taxRateNum >= 0 ? taxRateNum : 0,
+    taxRate: Number.isFinite(taxRateNum) && taxRateNum >= 0 ? taxRateNum : 0,
     taxLabel: form.taxLabel.trim() || undefined,
     dateFormat: form.dateFormat,
     dueTermsPresets: form.dueTermsPresets
@@ -130,9 +137,22 @@ export function formToConfig(form: TemplateFormShape): InvoiceTemplateConfig {
       .map((p) => ({
         id: p.id.trim(),
         label: p.label.trim(),
-        days:
-          Number.isFinite(p.days) && p.days >= 0 ? Math.floor(p.days) : 0,
+        days: Number.isFinite(p.days) && p.days >= 0 ? Math.floor(p.days) : 0,
       })),
+    allowCustomDueTerms: form.allowCustomDueTerms,
+    itemPresets: form.itemPresets
+      .map((i) => {
+        const description =
+          typeof i.description === "string" ? i.description.trim() : "";
+        const priceNum =
+          typeof i.price === "number" ? i.price : Number(i.price);
+        const hasPrice = Number.isFinite(priceNum) && priceNum >= 0;
+        return hasPrice
+          ? ({ description, price: priceNum } as ItemPreset)
+          : ({ description } as ItemPreset);
+      })
+      .filter((i) => i.description),
+    allowCustomItemDescriptions: form.allowCustomItemDescriptions,
     contractorFields: sanitizeFieldList(form.contractorFields),
     bankFields: sanitizeFieldList(form.bankFields),
     businessEmail: form.businessEmail.trim() || undefined,
