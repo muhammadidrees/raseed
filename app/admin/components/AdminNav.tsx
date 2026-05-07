@@ -13,15 +13,19 @@ import {
 import {
   IconChevronDown,
   IconLogout,
+  IconMessageCircle,
   IconUserCircle,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandWordmark } from "@/app/components/Brand";
+import { useFeedback } from "@/app/components/feedback/FeedbackProvider";
+import { FeedbackButton } from "@/app/components/FeedbackButton";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser-client";
 
 export function AdminNav() {
+  const { open } = useFeedback();
   const router = useRouter();
   const pathname = usePathname();
   const [signingOut, setSigningOut] = useState(false);
@@ -142,6 +146,17 @@ export function AdminNav() {
                     >
                       Account settings
                     </Menu.Item>
+                    <Menu.Item
+                      leftSection={<IconMessageCircle size={14} />}
+                      onClick={() =>
+                        open({
+                          source: "admin-nav",
+                          defaultEmail: email ?? undefined,
+                        })
+                      }
+                    >
+                      Send feedback
+                    </Menu.Item>
                     <Menu.Divider />
                     <Menu.Item
                       color="red"
@@ -156,16 +171,26 @@ export function AdminNav() {
               </>
             ) : null}
             {isDemoPath ? (
-              <Button
-                component={Link}
-                href="/admin/login"
-                variant="light"
-                color="brand"
-                size="xs"
-                radius="md"
-              >
-                Sign in
-              </Button>
+              <Group gap={6} wrap="nowrap">
+                <FeedbackButton
+                  source="admin-demo-nav"
+                  label="Feedback"
+                  variant="subtle"
+                  color="gray"
+                  size="xs"
+                  hideIcon
+                />
+                <Button
+                  component={Link}
+                  href="/admin/login"
+                  variant="light"
+                  color="brand"
+                  size="xs"
+                  radius="md"
+                >
+                  Sign in
+                </Button>
+              </Group>
             ) : null}
           </Group>
         </Group>

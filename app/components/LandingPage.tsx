@@ -30,6 +30,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import { FeedbackButton } from "./FeedbackButton";
 import { AppTheme } from "./AppTheme";
 import { BrandWordmark } from "./Brand";
 import { FtmoiSignature } from "./FtmoiSignature";
@@ -135,6 +136,14 @@ function TopNav() {
             <Anchor component={Link} href="/admin/login" size="sm" c="dimmed">
               Sign in
             </Anchor>
+            <FeedbackButton
+              source="landing-nav"
+              label="Feedback"
+              variant="subtle"
+              color="gray"
+              size="sm"
+              hideIcon
+            />
           </Group>
           <Button
             component={Link}
@@ -445,7 +454,7 @@ function Footer() {
             <BrandWordmark size={22} />
             <FtmoiSignature />
           </Group>
-          <Group gap="lg">
+          <Group gap="lg" align="center">
             <Anchor component={Link} href="/admin/demo" size="xs" c="dimmed">
               Try the admin
             </Anchor>
@@ -458,6 +467,14 @@ function Footer() {
             <Anchor component={Link} href="/admin/login" size="xs" c="dimmed">
               Sign in
             </Anchor>
+            <FeedbackButton
+              source="landing-footer"
+              label="Feedback"
+              variant="subtle"
+              color="gray"
+              size="xs"
+              hideIcon
+            />
           </Group>
         </Group>
       </Container>

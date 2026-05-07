@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  Anchor,
   Avatar,
   Badge,
-  Box,
   Button,
   Container,
   Group,
@@ -27,6 +25,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser-client";
+import { FeedbackButton } from "@/app/components/FeedbackButton";
 
 type AdminOrg = {
   id: string;
@@ -57,6 +56,7 @@ export default function AdminHomePage() {
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<AdminOrg[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +70,7 @@ export default function AdminHomePage() {
           router.replace("/admin/login");
           return;
         }
+        if (!cancelled) setUserEmail(user.email ?? undefined);
 
         const { data: memberRows, error: mErr } = await supabase
           .from("organization_members")
@@ -316,15 +317,19 @@ export default function AdminHomePage() {
           })}
         </Stack>
 
-        <Box>
+        <Group gap="sm" wrap="wrap" align="center">
           <Text size="xs" c="dimmed">
-            Need a new organization?{" "}
-            <Anchor href="mailto:hello@raseedhq.com" size="xs">
-              Email us
-            </Anchor>{" "}
-            — self-serve signup ships after closed alpha.
+            Need a new organization, hit a bug, or have a request? Self-serve
+            signup ships after closed alpha — until then, drop us a line.
           </Text>
-        </Box>
+          <FeedbackButton
+            source="admin-list"
+            defaultEmail={userEmail}
+            label="Send feedback"
+            variant="light"
+            size="xs"
+          />
+        </Group>
       </Stack>
     </Container>
   );

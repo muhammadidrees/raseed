@@ -21,6 +21,7 @@ import { IconArrowLeft, IconLock } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FeedbackButton } from "@/app/components/FeedbackButton";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser-client";
 
 function sanitizeNext(raw: string | null): string {
@@ -145,18 +146,28 @@ export function LoginForm() {
             </Stack>
           </Paper>
           <Center>
-            <Anchor
-              component={Link}
-              href="/"
-              size="sm"
-              c="dimmed"
-              underline="hover"
-            >
-              <Group gap={4}>
-                <IconArrowLeft size={14} />
-                Back to home
-              </Group>
-            </Anchor>
+            <Group gap="xl" wrap="wrap" justify="center">
+              <Anchor
+                component={Link}
+                href="/"
+                size="sm"
+                c="dimmed"
+                underline="hover"
+              >
+                <Group gap={4}>
+                  <IconArrowLeft size={14} />
+                  Back to home
+                </Group>
+              </Anchor>
+              <FeedbackButton
+                source="admin-login"
+                label="Having trouble?"
+                variant="subtle"
+                color="gray"
+                size="sm"
+                hideIcon
+              />
+            </Group>
           </Center>
         </Stack>
       </Container>

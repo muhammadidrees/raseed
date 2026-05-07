@@ -3,6 +3,10 @@
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { cssVariablesResolver, raseedTheme } from "@/lib/theme";
+import {
+  FeedbackFab,
+  FeedbackProvider,
+} from "@/app/components/feedback/FeedbackProvider";
 
 /**
  * Single source of truth for theming the app. Every page/route should wrap
@@ -20,7 +24,10 @@ export function AppTheme({ children }: { children: React.ReactNode }) {
       defaultColorScheme="light"
     >
       <Notifications position="top-right" />
-      {children}
+      <FeedbackProvider>
+        <FeedbackFab />
+        {children}
+      </FeedbackProvider>
     </MantineProvider>
   );
 }

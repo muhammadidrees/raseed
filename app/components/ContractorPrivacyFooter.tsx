@@ -2,10 +2,15 @@
 
 import { Anchor, Button, Group, Text } from "@mantine/core";
 import { IconShieldLock, IconTrash } from "@tabler/icons-react";
+import { usePathname } from "next/navigation";
 import { useInvoiceShell } from "../context/InvoiceShellContext";
 import { clearContractorStorage } from "@/lib/storage-keys";
+import { feedbackSourceFromPathname } from "@/lib/feedback";
+import { useFeedback } from "@/app/components/feedback/FeedbackProvider";
 
 export function ContractorPrivacyFooter() {
+  const pathname = usePathname();
+  const { open } = useFeedback();
   const { storageNamespace, organizationDisplayName } = useInvoiceShell();
 
   const handleClear = () => {
@@ -49,6 +54,23 @@ export function ContractorPrivacyFooter() {
             size="xs"
           >
             What&apos;s localStorage?
+          </Anchor>
+          {" · "}
+          <Anchor
+            component="button"
+            type="button"
+            size="xs"
+            underline="never"
+            onClick={() =>
+              open({
+                source: storageNamespace
+                  ? `contractor:${storageNamespace}`
+                  : feedbackSourceFromPathname(pathname ?? null),
+              })
+            }
+            style={{ cursor: "pointer", verticalAlign: "baseline" }}
+          >
+            Feedback
           </Anchor>
         </Text>
       </Group>
