@@ -20,14 +20,12 @@ import {
   IconAddressBook,
   IconBuildingBank,
   IconCalendarDollar,
-  IconCash,
   IconFileText,
   IconListDetails,
   IconPlus,
   IconSettings,
   IconTrash,
   IconUser,
-  IconWorld,
 } from "@tabler/icons-react";
 import type { UseFormReturnType } from "@mantine/form";
 import {
@@ -74,11 +72,8 @@ const BANK_FIELD_PRESETS = [
  */
 export function TemplateEditorForm({
   form,
-  showPublishToggle = true,
 }: {
   form: UseFormReturnType<TemplateFormShape>;
-  /** When false, the "Published" checkbox is hidden (used by the demo editor). */
-  showPublishToggle?: boolean;
 }) {
   const handleCurrencyCodeChange = (code: string | null) => {
     if (!code) return;
@@ -148,11 +143,6 @@ export function TemplateEditorForm({
           <Tabs.Tab value="bank" leftSection={<IconBuildingBank size={16} />}>
             Payment Details
           </Tabs.Tab>
-          {showPublishToggle ? (
-            <Tabs.Tab value="publish" leftSection={<IconWorld size={16} />}>
-              Publish
-            </Tabs.Tab>
-          ) : null}
         </Tabs.List>
 
         {/* ── Branding & contact ─────────────────────────────────────── */}
@@ -558,40 +548,6 @@ export function TemplateEditorForm({
             </Text>
           </Stack>
         </Tabs.Panel>
-
-        {/* ── Publish ────────────────────────────────────────────────── */}
-        {showPublishToggle ? (
-          <Tabs.Panel value="publish">
-            <Stack gap="md">
-              <SectionHeading
-                title="Publish"
-                description="When published, your contractors can load the live form at /{slug}. Unpublish to hide it again — saved data stays in their browser."
-              />
-              <Paper
-                withBorder
-                radius="md"
-                p="md"
-                style={{ background: "var(--raseed-surface)" }}
-              >
-                <Group gap="sm" align="flex-start">
-                  <IconCash size={20} color="var(--raseed-muted)" />
-                  <Box style={{ flex: 1 }}>
-                    <Checkbox
-                      label="Published — contractors can load /{slug}"
-                      {...form.getInputProps("isPublished", {
-                        type: "checkbox",
-                      })}
-                    />
-                    <Text size="xs" c="dimmed" mt={6}>
-                      Toggle this when the rest of the template is ready. Save
-                      to apply.
-                    </Text>
-                  </Box>
-                </Group>
-              </Paper>
-            </Stack>
-          </Tabs.Panel>
-        ) : null}
       </Tabs>
     </Paper>
   );

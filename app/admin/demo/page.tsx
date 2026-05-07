@@ -182,7 +182,7 @@ export default function AdminDemoPage() {
                 Settings — these are your invoice rules. The preview on the
                 right updates as you type.
               </Text>
-              <TemplateEditorForm form={form} showPublishToggle={false} />
+              <TemplateEditorForm form={form} />
               <Group justify="flex-end">
                 <Button
                   size="md"
@@ -199,7 +199,7 @@ export default function AdminDemoPage() {
               style={{
                 position: "sticky",
                 top: 16,
-                height: "calc(100vh - 32px)",
+                height: "min(calc(100vh - 32px), 760px)",
               }}
             >
               <Paper

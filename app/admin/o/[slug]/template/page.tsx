@@ -6,11 +6,13 @@ import {
   Box,
   Button,
   Container,
+  Divider,
   Grid,
   Group,
   Loader,
   Paper,
   Stack,
+  Switch,
   Text,
   Title,
   Tooltip,
@@ -43,6 +45,8 @@ export default function AdminTemplatePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [savedConfigJson, setSavedConfigJson] = useState<string>("");
   const [org, setOrg] = useState<Org | null>(null);
   const [templateId, setTemplateId] = useState<string | null>(null);
 
@@ -100,7 +104,10 @@ export default function AdminTemplatePage() {
 
       const cfg = parseInvoiceTemplateConfig(tmpl?.config ?? {});
       setTemplateId(tmpl?.id ?? null);
-      form.setValues(configToForm(cfg, o.name, tmpl?.is_published ?? false));
+      const next = configToForm(cfg, o.name, tmpl?.is_published ?? false);
+      form.setValues(next);
+      form.resetDirty(next);
+      setSavedConfigJson(JSON.stringify(formToConfig(next)));
     } catch (e: unknown) {
       notifications.show({
         title: "Load failed",
@@ -173,6 +180,43 @@ export default function AdminTemplatePage() {
     }
   };
 
+  /**
+   * Publish/unpublish in isolation: contractors see /{slug} immediately
+   * after this resolves. Publish is a one-bit lifecycle action so we
+   * deliberately don't bundle it with the Settings save.
+   */
+  const togglePublish = async (next: boolean) => {
+    if (!org || !templateId) return;
+    setPublishing(true);
+    // Optimistic: update local state so the Switch animates immediately.
+    form.setFieldValue("isPublished", next);
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase
+        .from("invoice_templates")
+        .update({ is_published: next })
+        .eq("id", templateId);
+      if (error) throw error;
+      notifications.show({
+        title: next ? "Published" : "Unpublished",
+        message: next
+          ? `Contractors can now load /${org.slug}.`
+          : `/${org.slug} is hidden again.`,
+        color: next ? "teal" : "gray",
+      });
+    } catch (e: unknown) {
+      // Roll back on failure
+      form.setFieldValue("isPublished", !next);
+      notifications.show({
+        title: "Publish failed",
+        message: e instanceof Error ? e.message : "Unknown error",
+        color: "red",
+      });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   if (loading) {
     return (
       <Stack align="center" p="xl">
@@ -204,6 +248,9 @@ export default function AdminTemplatePage() {
 
   const isPublished = form.values.isPublished;
   const liveHref = `/${encodeURIComponent(org.slug)}`;
+  const liveConfigJson = JSON.stringify(formToConfig(form.values));
+  const hasUnsavedSettings =
+    Boolean(templateId) && liveConfigJson !== savedConfigJson;
 
   return (
     <Container size="xl" px="md" py="md">
@@ -234,7 +281,7 @@ export default function AdminTemplatePage() {
                 </Title>
                 {isPublished ? (
                   <Badge color="teal" variant="light">
-                    Published
+                    Live
                   </Badge>
                 ) : (
                   <Badge color="gray" variant="light">
@@ -243,15 +290,60 @@ export default function AdminTemplatePage() {
                 )}
               </Group>
               <Text size="xs" c="dimmed">
-                Live URL:{" "}
                 {isPublished ? (
-                  <Link href={liveHref}>/{org.slug}</Link>
+                  <>
+                    Live URL:{" "}
+                    <Link href={liveHref}>raseedhq.com/{org.slug}</Link>
+                  </>
                 ) : (
-                  <span>/{org.slug} (publish to enable)</span>
+                  <>Live URL: raseedhq.com/{org.slug} (publish to enable)</>
                 )}
               </Text>
             </Stack>
-            <Group gap="xs" wrap="nowrap">
+            <Group gap="md" wrap="nowrap" align="center">
+              <Tooltip
+                label={
+                  !templateId
+                    ? "Save the template at least once before publishing"
+                    : isPublished
+                      ? "Hide /" + org.slug + " from contractors"
+                      : "Make /" + org.slug + " available to contractors"
+                }
+              >
+                <Group gap={8} wrap="nowrap" align="center">
+                  <Switch
+                    size="md"
+                    color="teal"
+                    onLabel="LIVE"
+                    offLabel="OFF"
+                    checked={isPublished}
+                    disabled={!templateId || publishing}
+                    onChange={(e) =>
+                      void togglePublish(e.currentTarget.checked)
+                    }
+                    label={isPublished ? "Published" : "Unpublished"}
+                    labelPosition="left"
+                    styles={{
+                      label: {
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: isPublished
+                          ? "var(--mantine-color-teal-7)"
+                          : "var(--raseed-muted)",
+                        paddingInlineEnd: 8,
+                      },
+                    }}
+                  />
+                  {isPublished && hasUnsavedSettings ? (
+                    <Tooltip label="You have unsaved settings — Save to push them live.">
+                      <Badge color="orange" variant="light" size="xs">
+                        Unsaved
+                      </Badge>
+                    </Tooltip>
+                  ) : null}
+                </Group>
+              </Tooltip>
+              <Divider orientation="vertical" />
               <Tooltip
                 label={
                   isPublished
@@ -311,7 +403,7 @@ export default function AdminTemplatePage() {
               style={{
                 position: "sticky",
                 top: 16,
-                height: "calc(100vh - 32px)",
+                height: "min(calc(100vh - 32px), 760px)",
               }}
             >
               <Paper
