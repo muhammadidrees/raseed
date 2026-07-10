@@ -35,7 +35,16 @@ const loadInitialState = (): BankInfo => {
     const storedData = localStorage.getItem("bankFormData");
     if (storedData) {
       try {
-        return JSON.parse(storedData);
+        const parsed = JSON.parse(storedData);
+        return {
+          name: parsed.name ?? "",
+          accountTitle: parsed.accountTitle ?? "",
+          iban: parsed.iban ?? "",
+          bic: parsed.bic ?? "",
+          additionalFields: Array.isArray(parsed.additionalFields)
+            ? parsed.additionalFields
+            : [],
+        };
       } catch (error) {
         console.error("Failed to parse stored bank form data:", error);
       }
@@ -47,6 +56,7 @@ const loadInitialState = (): BankInfo => {
     accountTitle: "",
     iban: "",
     bic: "",
+    additionalFields: [],
   };
 };
 
@@ -55,6 +65,7 @@ const defaultState: BankInfo = {
   accountTitle: "",
   iban: "",
   bic: "",
+  additionalFields: [],
 };
 
 export const BankFormProvider = ({ children }: { children: ReactNode }) => {

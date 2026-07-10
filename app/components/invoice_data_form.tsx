@@ -16,16 +16,19 @@ import {
   Modal,
   Box,
   Paper,
+  Tooltip,
 } from "@mantine/core";
 import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext";
+import { describeBonus } from "../utils/bonus";
 import {
   IconTrash,
   IconCurrencyEuro,
   IconGift,
   IconCheck,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { randomId } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -100,6 +103,13 @@ export default function InvoiceDataForm() {
   const [bonusModalOpen, setBonusModalOpen] = useState(false);
   const [bonusPercent, setBonusPercent] = useState<number | string>(25);
   const [spreadMonths, setSpreadMonths] = useState<number | string>(3);
+  const [bonusTeam, setBonusTeam] = useState<string>("Engineering");
+  // Default to the previous quarter (Q2 bonus is paid out in Q3, etc.).
+  const [bonusQuarter, setBonusQuarter] = useState<string>(() => {
+    const m = new Date().getMonth();
+    const currentQ = Math.floor(m / 3) + 1;
+    return String(currentQ === 1 ? 4 : currentQ - 1);
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("monthlySalary");
@@ -274,6 +284,10 @@ export default function InvoiceDataForm() {
     const monthName = new Date(invoiceDate).toLocaleString("default", {
       month: "long",
     });
+    const bonusInfo =
+      item.isBonusPayout && item.bonusMeta
+        ? describeBonus(item.bonusMeta, invoiceDate)
+        : null;
     return (
       <Group
         key={item.key}
@@ -291,10 +305,42 @@ export default function InvoiceDataForm() {
         {item.isBonusPayout ? (
           <TextInput
             style={{ flex: 4 }}
-            value={`Bonus Payout - ${monthName}`}
+            value={
+              bonusInfo?.description ??
+              item.description ??
+              `Bonus Payout - ${monthName}`
+            }
             readOnly
-            leftSection={<IconGift size="0.9rem" />}
-            styles={{ input: { fontStyle: "italic", opacity: 0.8 } }}
+            leftSection={
+              <Tooltip
+                label="Bonus payout — description, installment and month are auto-derived from the invoice date. Delete and re-add to change team, quarter or amount."
+                withArrow
+                multiline
+                w={240}
+              >
+                <span style={{ display: "inline-flex", cursor: "help" }}>
+                  <IconGift size="0.9rem" />
+                </span>
+              </Tooltip>
+            }
+            rightSection={
+              bonusInfo?.outsideWindow ? (
+                <Tooltip
+                  label={`Invoice month is outside the Q${item.bonusMeta?.quarter} payout window — installment has been clamped. Change the invoice month or re-add the bonus with the correct quarter.`}
+                  withArrow
+                  multiline
+                  w={240}
+                >
+                  <span style={{ display: "inline-flex", cursor: "help" }}>
+                    <IconAlertTriangle
+                      size="0.9rem"
+                      color="var(--mantine-color-yellow-6)"
+                    />
+                  </span>
+                </Tooltip>
+              ) : null
+            }
+            styles={{ input: { fontStyle: "italic", opacity: 0.85 } }}
           />
         ) : (
           <TextInput
@@ -579,6 +625,27 @@ export default function InvoiceDataForm() {
               rightSection={<IconCurrencyEuro size="1rem" />}
             />
             <Group grow>
+              <TextInput
+                label="Team"
+                description="Team name shown in the description"
+                value={bonusTeam}
+                onChange={(e) => setBonusTeam(e.currentTarget.value)}
+              />
+              <Select
+                label="Quarter"
+                description="Bonus quarter (previous quarter by default)"
+                data={[
+                  { value: "1", label: "Q1" },
+                  { value: "2", label: "Q2" },
+                  { value: "3", label: "Q3" },
+                  { value: "4", label: "Q4" },
+                ]}
+                value={bonusQuarter}
+                onChange={(v) => v && setBonusQuarter(v)}
+                allowDeselect={false}
+              />
+            </Group>
+            <Group grow>
               <NumberInput
                 label="Bonus %"
                 description="Percentage of salary"
@@ -606,10 +673,15 @@ export default function InvoiceDataForm() {
               const salary = Number(monthlySalary);
               const pct = Number(bonusPercent);
               const months = Number(spreadMonths);
+              const quarter = Number(bonusQuarter);
               const invoiceDate = form.getValues().date ?? new Date();
-              const monthName = new Date(invoiceDate).toLocaleString(
-                "default",
-                { month: "long" },
+              const { description } = describeBonus(
+                {
+                  quarter,
+                  team: bonusTeam || "Team",
+                  months,
+                },
+                invoiceDate,
               );
               const amount =
                 salary > 0 && pct > 0 && months > 0
@@ -623,10 +695,10 @@ export default function InvoiceDataForm() {
                   style={{ borderColor: "var(--mantine-color-violet-filled)" }}
                 >
                   <Text size="xs" c="dimmed" mb={4}>
-                    Preview
+                    Preview (auto-updates each month)
                   </Text>
                   <Text size="sm" fw={500}>
-                    Bonus Payout - {monthName}
+                    {description}
                   </Text>
                   {amount ? (
                     <>
@@ -657,23 +729,29 @@ export default function InvoiceDataForm() {
               </Button>
               <Button
                 color="violet"
-                disabled={!monthlySalary}
+                disabled={!monthlySalary || !bonusTeam.trim()}
                 onClick={() => {
                   const salary = Number(monthlySalary);
                   const pct = Number(bonusPercent);
                   const months = Number(spreadMonths);
+                  const quarter = Number(bonusQuarter);
                   const bonusAmount = (salary * pct) / (100 * months);
                   const invoiceDate = form.getValues().date ?? new Date();
-                  const monthName = new Date(invoiceDate).toLocaleString(
-                    "default",
-                    { month: "long" },
-                  );
+                  const meta = {
+                    quarter,
+                    team: bonusTeam.trim(),
+                    months,
+                  };
+                  // Snapshot a description so legacy render paths (or a
+                  // freshly deserialized item without meta) still have text.
+                  const { description } = describeBonus(meta, invoiceDate);
                   form.insertListItem("items", {
-                    description: `Bonus Payout - ${monthName}`,
+                    description,
                     quantity: 1,
                     price: parseFloat(bonusAmount.toFixed(2)),
                     key: randomId(),
                     isBonusPayout: true,
+                    bonusMeta: meta,
                   });
                   setBonusModalOpen(false);
                 }}

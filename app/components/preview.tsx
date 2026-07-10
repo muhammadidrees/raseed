@@ -9,6 +9,7 @@ import { BankInfo, CompanyInfo, InvoiceData, PersonalInfo } from "../types";
 import { useInvoiceDataContext } from "../context/InvoiceDataContext";
 import { useEffect, useState } from "react";
 import { useBankFormContext } from "../context/BankInfoContext";
+import { resolveItemDescription } from "../utils/bonus";
 
 const PDFViewer = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFViewer),
@@ -358,9 +359,10 @@ export function MyDocument({
 
           {/* Table Rows */}
           {invoiceFromData.items.map((item) => {
-            const description = item.isBonusPayout
-              ? `Bonus Payout - ${new Date(invoiceFromData.date).toLocaleString("default", { month: "long" })}`
-              : item.description;
+            const { description } = resolveItemDescription(
+              item,
+              new Date(invoiceFromData.date),
+            );
             return (
               <View key={item.key} style={styles.tableRow}>
                 <Text style={styles.tableCellDescription}>{description}</Text>
@@ -417,6 +419,14 @@ export function MyDocument({
             <Text style={styles.paymentLabel}>BIC:</Text>
             <Text style={styles.paymentValue}>{bankFormData.bic}</Text>
           </View>
+          {(bankFormData.additionalFields ?? [])
+            .filter((f) => f.label.trim() !== "" && f.value.trim() !== "")
+            .map((field) => (
+              <View key={field.key} style={styles.paymentRow}>
+                <Text style={styles.paymentLabel}>{field.label}:</Text>
+                <Text style={styles.paymentValue}>{field.value}</Text>
+              </View>
+            ))}
         </View>
 
         {/* Footer */}

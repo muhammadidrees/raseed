@@ -28,6 +28,13 @@ export interface InvoiceItem {
   price: number;
   key: string;
   isBonusPayout?: boolean;
+  bonusMeta?: BonusMeta;
+}
+
+export interface BonusMeta {
+  quarter: number; // 1-4
+  team: string;
+  months: number; // total installments the bonus is spread over
 }
 
 export interface PersonalInfo {
@@ -42,6 +49,13 @@ export interface BankInfo {
   accountTitle: string;
   iban: string;
   bic: string;
+  additionalFields?: BankInfoField[];
+}
+
+export interface BankInfoField {
+  label: string;
+  value: string;
+  key: string;
 }
 
 export interface CompanyInfo {
