@@ -17,6 +17,7 @@ import {
   Box,
   Paper,
   Tooltip,
+  Alert,
 } from "@mantine/core";
 import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { InvoiceData } from "../types";
@@ -338,6 +339,20 @@ export default function InvoiceDataForm() {
                     />
                   </span>
                 </Tooltip>
+              ) : !item.bonusMeta ? (
+                <Tooltip
+                  label="This bonus item is in the old format. Delete and re-add it via the Bonus Payout button to use the new one."
+                  withArrow
+                  multiline
+                  w={260}
+                >
+                  <span style={{ display: "inline-flex", cursor: "help" }}>
+                    <IconAlertTriangle
+                      size="0.9rem"
+                      color="var(--mantine-color-orange-6)"
+                    />
+                  </span>
+                </Tooltip>
               ) : null
             }
             styles={{ input: { fontStyle: "italic", opacity: 0.85 } }}
@@ -576,6 +591,28 @@ export default function InvoiceDataForm() {
           </Text>
         )}
 
+        {form
+          .getValues()
+          .items.some((it) => it.isBonusPayout && !it.bonusMeta) && (
+          <Alert
+            variant="light"
+            color="yellow"
+            radius="sm"
+            icon={<IconAlertTriangle size="1rem" />}
+            title="Bonus payout format has changed"
+            py="xs"
+          >
+            <Text size="xs" lh={1.5}>
+              Some bonus items are still in the old format. Delete and re-add
+              them via{" "}
+              <Text span fw={500}>
+                Add Bonus Payout
+              </Text>{" "}
+              to use the new one.
+            </Text>
+          </Alert>
+        )}
+
         {fields}
 
         <Group align="center" mb="xl" grow>
@@ -612,6 +649,7 @@ export default function InvoiceDataForm() {
           opened={bonusModalOpen}
           onClose={() => setBonusModalOpen(false)}
           title="Bonus Payout"
+          size="lg"
           centered
         >
           <Stack gap="sm">
@@ -627,13 +665,13 @@ export default function InvoiceDataForm() {
             <Group grow>
               <TextInput
                 label="Team"
-                description="Team name shown in the description"
+                description="Shown in the description"
                 value={bonusTeam}
                 onChange={(e) => setBonusTeam(e.currentTarget.value)}
               />
               <Select
                 label="Quarter"
-                description="Bonus quarter (previous quarter by default)"
+                description="Previous quarter by default"
                 data={[
                   { value: "1", label: "Q1" },
                   { value: "2", label: "Q2" },
@@ -648,7 +686,7 @@ export default function InvoiceDataForm() {
             <Group grow>
               <NumberInput
                 label="Bonus %"
-                description="Percentage of salary"
+                description="% of monthly salary"
                 min={1}
                 max={100}
                 value={bonusPercent}
@@ -661,7 +699,7 @@ export default function InvoiceDataForm() {
               />
               <NumberInput
                 label="Spread over"
-                description="Number of months to spread it over"
+                description="Number of months"
                 min={1}
                 max={12}
                 value={spreadMonths}

@@ -9,8 +9,9 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { InvoiceData } from "../types";
+import { InvoiceData, InvoiceItem } from "../types";
 import { randomId } from "@mantine/hooks";
+import { tryParseBonusMeta } from "../utils/bonus";
 
 interface InvoiceDataContextProps {
   invoiceFromData: InvoiceData;
@@ -46,6 +47,18 @@ const loadInitialState = (): InvoiceData => {
         // Period is never persisted — always starts blank
         parsedData.periodStart = undefined;
         parsedData.periodEnd = undefined;
+        // Auto-migrate bonus items that pre-date structured metadata but
+        // still have the recognizable description format. This is silent
+        // and idempotent — items that already have bonusMeta are untouched.
+        if (Array.isArray(parsedData.items)) {
+          parsedData.items = parsedData.items.map((item: InvoiceItem) => {
+            if (item.isBonusPayout && !item.bonusMeta) {
+              const meta = tryParseBonusMeta(item.description ?? "");
+              if (meta) return { ...item, bonusMeta: meta };
+            }
+            return item;
+          });
+        }
         return parsedData;
       }
     }

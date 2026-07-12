@@ -63,3 +63,25 @@ export function resolveItemDescription(
   }
   return { description: item.description, outsideWindow: false };
 }
+
+/**
+ * Reverse the bonus description format string back into BonusMeta so items
+ * saved before we introduced structured metadata can be auto-migrated on
+ * load without any user action.
+ *
+ * Matches e.g. "Q2 Team Bonus Payout Engineering 1/3 - July".
+ * The team is captured non-greedily so multi-word teams ("Data Platform")
+ * still work. The month is discarded — it's re-derived from the invoice date.
+ */
+const BONUS_DESCRIPTION_REGEX =
+  /^Q([1-4]) Team Bonus Payout (.+?) (\d+)\/(\d+) - .+$/;
+
+export function tryParseBonusMeta(description: string): BonusMeta | null {
+  const m = description.match(BONUS_DESCRIPTION_REGEX);
+  if (!m) return null;
+  const quarter = Number(m[1]);
+  const team = m[2].trim();
+  const months = Number(m[4]);
+  if (!team || !Number.isFinite(months) || months < 1) return null;
+  return { quarter, team, months };
+}
