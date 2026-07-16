@@ -25,6 +25,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.105.1",
     "@tabler/icons-react": "^3.41.1",
+    "@vercel/analytics": "^2.0.1",
     "next": "^16.2.4",
     "pdfjs-dist": "^4.4.168",
     "react": "^19.2.5",

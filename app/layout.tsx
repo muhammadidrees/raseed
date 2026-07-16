@@ -4,6 +4,7 @@ import "@mantine/notifications/styles.css";
 import "./globals.css";
 
 import { ColorSchemeScript, mantineHtmlProps } from "@mantine/core";
+import { Analytics } from "@vercel/analytics/next";
 import { Inter } from "next/font/google";
 
 const inter = Inter({
@@ -28,7 +29,10 @@ export default function RootLayout({
       <head>
         <ColorSchemeScript defaultColorScheme="light" />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
